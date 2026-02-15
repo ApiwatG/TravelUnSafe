@@ -21,7 +21,7 @@ class MainActivity : ComponentActivity() {
             TravelUnSafeTheme {
                 Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
                     Greeting(
-                        name = "Android",
+                        name = "Kiattipoom",
                         modifier = Modifier.padding(innerPadding)
                     )
                 }
