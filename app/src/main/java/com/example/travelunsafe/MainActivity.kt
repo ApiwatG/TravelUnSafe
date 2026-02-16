@@ -13,35 +13,77 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.travelunsafe.ui.theme.TravelUnSafeTheme
 
-class MainActivity : ComponentActivity() {
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.appcompat.app.AppCompatActivity
+import com.example.travelunsave.components.CustomBottomNavBar
+
+class MainActivity : AppCompatActivity() {
+
+    private lateinit var bottomNavBar: CustomBottomNavBar
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            TravelUnSafeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
-            }
+        setContentView(R.layout.activity_main)
+
+        // Find the custom bottom navigation bar
+        bottomNavBar = findViewById(R.id.custom_bottom_nav)
+
+        // Setup navigation listeners
+        setupBottomNavigation()
+    }
+
+    private fun setupBottomNavigation() {
+        // Home button
+        bottomNavBar.setOnHomeClickListener {
+            Toast.makeText(this, "Home clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to home fragment or activity
+            // supportFragmentManager.beginTransaction()
+            //     .replace(R.id.fragment_container, HomeFragment())
+            //     .commit()
+        }
+
+        // Messages button
+        bottomNavBar.setOnMessagesClickListener {
+            Toast.makeText(this, "Messages clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to messages fragment or activity
+            // startActivity(Intent(this, MessagesActivity::class.java))
+        }
+
+        // Favorites button
+        bottomNavBar.setOnFavoritesClickListener {
+            Toast.makeText(this, "Favorites clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to favorites fragment or activity
+        }
+
+        // Profile button
+        bottomNavBar.setOnProfileClickListener {
+            Toast.makeText(this, "Profile clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to profile fragment or activity
+        }
+
+        // Guide button (from popup)
+        bottomNavBar.setOnGuideClickListener {
+            Toast.makeText(this, "Guide clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to guide creation activity
+            // startActivity(Intent(this, GuideActivity::class.java))
+        }
+
+        // Travel Plan button (from popup)
+        bottomNavBar.setOnTravelPlanClickListener {
+            Toast.makeText(this, "Travel Plan clicked", Toast.LENGTH_SHORT).show()
+            // Navigate to travel plan creation activity
+            // startActivity(Intent(this, TravelPlanActivity::class.java))
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TravelUnSafeTheme {
-        Greeting("Android")
+    override fun onBackPressed() {
+        // Dismiss popup if showing, otherwise do normal back action
+        if (bottomNavBar.getCurrentSelectedTab() != R.id.nav_home) {
+            bottomNavBar.selectTab(R.id.nav_home)
+        } else {
+            super.onBackPressed()
+        }
     }
 }
