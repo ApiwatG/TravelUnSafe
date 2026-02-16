@@ -12,12 +12,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
 import com.example.travelunsafe.ui.theme.TravelUnSafeTheme
-
+import androidx.activity.OnBackPressedCallback
 import android.content.Intent
-import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import com.example.travelunsave.components.CustomBottomNavBar
+import androidx.compose.ui.contentcapture.ContentCaptureManager.Companion.isEnabled
+import com.example.travelunsafe.components.CustomBottomNavBar
 
 class MainActivity : AppCompatActivity() {
 
@@ -32,6 +33,24 @@ class MainActivity : AppCompatActivity() {
 
         // Setup navigation listeners
         setupBottomNavigation()
+
+        // Setup back press handler
+        setupBackPressHandler()
+    }
+
+    private fun setupBackPressHandler() {
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                // If not on home, go to home first
+                if (bottomNavBar.getCurrentSelectedTab() != R.id.nav_home) {
+                    bottomNavBar.selectTab(R.id.nav_home)
+                } else {
+                    // If already on home, exit the app
+                    isEnabled = false
+                    onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
     }
 
     private fun setupBottomNavigation() {
@@ -75,15 +94,6 @@ class MainActivity : AppCompatActivity() {
             Toast.makeText(this, "Travel Plan clicked", Toast.LENGTH_SHORT).show()
             // Navigate to travel plan creation activity
             // startActivity(Intent(this, TravelPlanActivity::class.java))
-        }
-    }
-
-    override fun onBackPressed() {
-        // Dismiss popup if showing, otherwise do normal back action
-        if (bottomNavBar.getCurrentSelectedTab() != R.id.nav_home) {
-            bottomNavBar.selectTab(R.id.nav_home)
-        } else {
-            super.onBackPressed()
         }
     }
 }
