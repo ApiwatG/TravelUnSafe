@@ -2,6 +2,7 @@ package com.example.travelunsafe
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
@@ -25,7 +26,7 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HotelBookingScreen() {
+fun ListHotelScreen(onHotelClick: () -> Unit) {
     Scaffold(
         // 1. ส่วนหัว (Top Bar)
         topBar = {
@@ -67,7 +68,12 @@ fun HotelBookingScreen() {
 
             // 3.2 รายการโรงแรม (จำลองขึ้นมา 3 อัน)
             repeat(3) {
-                HotelCardSkeleton()
+                Box(
+                    modifier = Modifier
+                        .clickable { onHotelClick() } // <--- 2. เมื่อกดที่กล่องนี้ ให้ทำงาน
+                ) {
+                    HotelCardSkeleton()
+                }
                 Spacer(modifier = Modifier.height(16.dp))
                 Divider(color = Color.LightGray.copy(alpha = 0.5f))
                 Spacer(modifier = Modifier.height(16.dp))
@@ -148,7 +154,7 @@ fun HotelCardSkeleton() {
             }
 
             Text(
-                text = "฿ 1,200/คืน",
+                text = "฿1,200/คืน",
                 fontWeight = FontWeight.Bold,
                 fontSize = 16.sp
             )

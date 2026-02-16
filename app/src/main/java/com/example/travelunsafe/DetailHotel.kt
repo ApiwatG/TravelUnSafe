@@ -30,7 +30,7 @@ import androidx.compose.ui.window.Dialog
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HotelDetailScreen() {
+fun HotelDetailScreen(onBackClick: () -> Unit) {
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
@@ -40,12 +40,10 @@ fun HotelDetailScreen() {
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    IconButton(onClick = { /* สั่งให้ย้อนกลับหน้าเดิม */ }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Color.Black
-                        )
+                    IconButton(
+                        onClick = { onBackClick() } // <--- 2. เรียกใช้ตรงนี้
+                    ) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
