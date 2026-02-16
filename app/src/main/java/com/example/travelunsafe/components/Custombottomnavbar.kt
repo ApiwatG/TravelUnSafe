@@ -7,6 +7,7 @@ import android.util.AttributeSet
 import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.PopupWindow
 import androidx.cardview.widget.CardView
@@ -85,7 +86,7 @@ class CustomBottomNavBar @JvmOverloads constructor(
 
         // Create popup window
         val popupWidth = context.resources.getDimensionPixelSize(R.dimen.popup_width)
-        val popupHeight = context.resources.getDimensionPixelSize(R.dimen.popup_height)
+        val popupHeight = ViewGroup.LayoutParams.WRAP_CONTENT
 
         popupWindow = PopupWindow(
             popupView,

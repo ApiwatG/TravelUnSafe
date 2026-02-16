@@ -1,5 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.TravelUnSafe" parent="android:Theme.Material.Light.NoActionBar" />
+    <!-- Base application theme -->
+    <style name="Theme.TravelUnSafe" parent="Theme.AppCompat.Light.NoActionBar">
+        <!-- Your customizations -->
+        <item name="colorPrimary">#5BC4F5</item>
+        <item name="colorPrimaryDark">#4AA8D8</item>
+        <item name="colorAccent">#5BC4F5</item>
+    </style>
 </resources>

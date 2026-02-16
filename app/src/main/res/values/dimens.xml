@@ -2,8 +2,8 @@
 <resources>
     <!-- Popup Dimensions -->
     <dimen name="popup_width">180dp</dimen>
-    <dimen name="popup_height">wrap_content</dimen>
-    
+    <!-- Remove this line - it's invalid! -->
+
     <!-- Bottom Navigation -->
     <dimen name="bottom_nav_height">64dp</dimen>
     <dimen name="fab_size">64dp</dimen>
