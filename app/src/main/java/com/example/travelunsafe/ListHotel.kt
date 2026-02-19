@@ -1,163 +1,109 @@
 package com.example.travelunsafe
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ListHotelScreen(onHotelClick: () -> Unit) {
+fun ListHotelScreen(
+    hotels: List<Hotel>, // <--- 1. รับรายการข้อมูลเข้ามา
+    isLoading: Boolean = false, // <--- 2. รับสถานะการโหลด
+    onHotelClick: (Hotel) -> Unit // <--- 3. ส่งข้อมูลโรงแรมที่ถูกกดออกไป
+) {
+    // State ควบคุม Bottom Sheet (เหมือนเดิม)
+    var showFilterSheet by remember { mutableStateOf(false) }
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val scope = rememberCoroutineScope()
+
     Scaffold(
-        // 1. ส่วนหัว (Top Bar)
         topBar = {
             TopAppBar(
-                title = { /* ไม่ใส่ข้อความตรงนี้แล้ว */ },
+                title = { },
                 navigationIcon = {
-                    IconButton(onClick = { /* ใส่คำสั่งย้อนกลับตรงนี้ */ }) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack, // ไอคอนลูกศร
-                            contentDescription = "Back",
-                            tint = Color.Black
-                        )
+                    IconButton(onClick = { /* Back Action */ }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                     }
                 }
             )
         },
     ) { paddingValues ->
 
-        // 3. เนื้อหาหลัก (Content)
         Column(
             modifier = Modifier
                 .padding(paddingValues)
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()) // ทำให้เลื่อนหน้าจอได้
+                .verticalScroll(rememberScrollState())
         ) {
             Text(
                 text = "โรงแรมและที่พัก",
-                fontSize = 32.sp, // ปรับให้ใหญ่ขึ้น
+                fontSize = 32.sp,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier
                     .align(Alignment.CenterHorizontally)
-                    .padding(bottom = 24.dp) // เว้นระยะห่างด้านล่าง
+                    .padding(bottom = 24.dp)
             )
-            // 3.1 ปุ่มตัวเลือก (Filter Buttons)
-            FilterButtonsRow()
+
+            // เรียกใช้ปุ่มจากไฟล์ HotelComponents.kt
+            FilterButtonsRow(
+                onFilterClick = { showFilterSheet = true }
+            )
 
             Spacer(modifier = Modifier.height(24.dp))
 
-            // 3.2 รายการโรงแรม (จำลองขึ้นมา 3 อัน)
-            repeat(3) {
-                Box(
-                    modifier = Modifier
-                        .clickable { onHotelClick() } // <--- 2. เมื่อกดที่กล่องนี้ ให้ทำงาน
-                ) {
+            // --- แก้ไขตรงนี้: เลือกว่าจะโชว์ Skeleton หรือ ข้อมูลจริง ---
+            if (isLoading) {
+                // กำลังโหลด: โชว์ Skeleton 5 อัน
+                repeat(5) {
                     HotelCardSkeleton()
+                    Spacer(modifier = Modifier.height(16.dp))
                 }
-                Spacer(modifier = Modifier.height(16.dp))
-                Divider(color = Color.LightGray.copy(alpha = 0.5f))
-                Spacer(modifier = Modifier.height(16.dp))
+            } else {
+                // โหลดเสร็จแล้ว: วนลูปข้อมูลจริง
+                hotels.forEach { hotel ->
+                    HotelCard(
+                        hotel = hotel,
+                        onClick = { onHotelClick(hotel) } // ส่ง object hotel กลับไปเมื่อถูกกด
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                // ถ้าไม่มีข้อมูลเลย
+                if (hotels.isEmpty()) {
+                    Text("ไม่พบข้อมูลโรงแรม", modifier = Modifier.align(Alignment.CenterHorizontally))
+                }
             }
         }
-    }
-}
 
-// --- ส่วนประกอบย่อย (Components) ---
-
-@Composable
-fun FilterButtonsRow() {
-    val buttonColor = Color(0xFF00B0FF)
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(16.dp) // เว้นระยะห่างระหว่างปุ่ม
-    ) {
-        // ปุ่มซ้าย
-        OutlinedButton(
-            onClick = {},
-            border = BorderStroke(width = 1.dp, color = buttonColor),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f).height(50.dp)
-        ) {
-            Text("ที่ไหน: โอซาก้า", color = Color.Gray)
-        }
-
-        // ปุ่มขวา
-        OutlinedButton(
-            onClick = {},
-            border = BorderStroke(width = 1.dp, color = buttonColor),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.weight(1f).height(50.dp)
-        ) {
-            Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("คัดกรอง", color = Color.Gray)
-        }
-    }
-}
-
-@Composable
-fun HotelCardSkeleton() {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(120.dp) // กำหนดความสูงของการ์ด
-    ) {
-        // กล่องสี่เหลี่ยมแทนรูปภาพ (Placeholder)
-        Box(
-            modifier = Modifier
-                .width(140.dp)
-                .fillMaxHeight()
-                .clip(RoundedCornerShape(12.dp))
-                .background(Color.LightGray) // สีเทา
-        )
-
-        Spacer(modifier = Modifier.width(16.dp))
-
-        // รายละเอียดด้านขวา
-        Column(
-            modifier = Modifier.fillMaxHeight(),
-            verticalArrangement = Arrangement.SpaceBetween // ดันเนื้อหาไปบนสุดกับล่างสุด
-        ) {
-            Column {
-                Text(
-                    text = "ชื่อโรงแรมตัวอย่าง",
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp
+        // Logic แสดง Bottom Sheet (Filter)
+        if (showFilterSheet) {
+            ModalBottomSheet(
+                onDismissRequest = { showFilterSheet = false },
+                sheetState = sheetState,
+                containerColor = Color.White
+            ) {
+                // เรียกใช้เนื้อหาจากไฟล์ FilterBottomSheet.kt
+                FilterSheetContent(
+                    onCloseClick = {
+                        scope.launch { sheetState.hide() }.invokeOnCompletion {
+                            if (!sheetState.isVisible) showFilterSheet = false
+                        }
+                    }
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(Icons.Default.LocationOn, contentDescription = null, tint = Color.Blue, modifier = Modifier.size(14.dp))
-                    Text(text = "สถานที่ตั้ง", fontSize = 12.sp, color = Color.Gray)
-                }
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "⭐⭐⭐", fontSize = 12.sp)
             }
-
-            Text(
-                text = "฿1,200/คืน",
-                fontWeight = FontWeight.Bold,
-                fontSize = 16.sp
-            )
         }
     }
 }
