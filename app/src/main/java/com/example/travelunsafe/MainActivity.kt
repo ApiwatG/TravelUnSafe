@@ -4,14 +4,13 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
 import com.example.travelunsafe.ui.theme.TravelUnSafeTheme
+
+import com.example.travelunsafe.ui.theme.DaySection
+import com.example.travelunsafe.ui.theme.GuideAuthor
+import com.example.travelunsafe.ui.theme.GuideDetailScreen
+import com.example.travelunsafe.ui.theme.GuideDetailUiState
+import com.example.travelunsafe.ui.theme.PlaceItem
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -19,29 +18,32 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TravelUnSafeTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Kiattipoom",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                GuideDetailScreen(
+                    uiState = GuideDetailUiState(
+                        title = "วิธีการเที่ยวญี่ปุ่นใน 2 สัปดาห์",
+                        author = GuideAuthor(name = "White Snake"),
+                        days = listOf(
+                            DaySection(
+                                dayNumber = 1,
+                                places = listOf(
+                                    PlaceItem(
+                                        name = "Tokyo",
+                                        tags = listOf("เมือง", "นิทรรศการ"),
+                                        description = "โตเกียว เมืองหลวงที่พลุกพล่านของญี่ปุ่น ผสมผสานความทันสมัยสุดขีดและความดั้งเดิม..."
+                                    ),
+                                    PlaceItem(
+                                        name = "Shibuya",
+                                        tags = listOf(),
+                                        description = "Shibuya is a special ward in Tokyo, Japan."
+                                    )
+                                )
+                            )
+                        )
+                    ),
+                    onBackClick = {},
+                    onFollowClick = {}
+                )
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    TravelUnSafeTheme {
-        Greeting("Android")
     }
 }
