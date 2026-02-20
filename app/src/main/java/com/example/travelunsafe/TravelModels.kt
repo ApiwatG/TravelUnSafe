@@ -179,3 +179,47 @@ data class CategoryPlace(
     val category_place_id: String,
     val category_place_name: String
 )
+
+// ===== GUIDE =====
+data class GuideModel(
+    val guide_id: String,
+    val guide_name: String,
+    val image_guide: String? = null,
+    val provinces_name: String? = null
+)
+
+// ===== PROFILE SUMMARY (returned by /profile/:id) =====
+data class ProfileStats(
+    val tripCount: Int = 0,
+    val guideCount: Int = 0
+)
+
+data class ProfileSummary(
+    val user: User,
+    val stats: ProfileStats,
+    val trips: List<Trip>,
+    val guides: List<GuideModel>
+)
+
+// ===== FAVORITE PLACE =====
+data class FavoritePlace(
+    val favorite_id: String,
+    val user_id: String,
+    val place_id: String,
+    val place_name: String,
+    val location: String? = null,
+    val view: Int = 0,
+    val category_place_name: String? = null,
+    val provinces_name: String? = null,
+    val createdAt: String? = null
+)
+
+data class AddFavoriteRequest(
+    val user_id: String,
+    val place_id: String
+)
+
+data class AddFavoriteResponse(
+    val message: String,
+    val favorite_id: String? = null
+)

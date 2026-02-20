@@ -8,7 +8,6 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
-
 class TravelViewModel : ViewModel() {
 
     // ===== STATE =====
@@ -40,6 +39,13 @@ class TravelViewModel : ViewModel() {
         private set
 
     var itinerary by mutableStateOf<List<Itinerary>>(emptyList())
+        private set
+
+    var favorites by mutableStateOf<List<FavoritePlace>>(emptyList())
+        private set
+
+    // Profile summary
+    var profileSummary by mutableStateOf<ProfileSummary?>(null)
         private set
 
     // UI state
@@ -377,6 +383,82 @@ class TravelViewModel : ViewModel() {
                     onSuccess()
                 } else {
                     errorMessage = "Failed to add expense"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+            }
+        }
+    }
+
+    // ===================================
+    //  PROFILE SUMMARY
+    // ===================================
+
+    fun loadProfile(userId: String) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = TravelClient.travelAPI.getProfile(userId)
+                if (response.isSuccessful) {
+                    profileSummary = response.body()
+                    errorMessage = ""
+                } else {
+                    errorMessage = "Failed to load profile"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // ===================================
+    //  FAVORITE PLACES
+    // ===================================
+
+    fun loadFavorites(userId: String) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                favorites = TravelClient.travelAPI.getFavorites(userId)
+                errorMessage = ""
+            } catch (e: Exception) {
+                errorMessage = "Failed to load favorites: ${e.message}"
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun addFavorite(context: Context, userId: String, placeId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.addFavorite(
+                    AddFavoriteRequest(user_id = userId, place_id = placeId)
+                )
+                if (response.isSuccessful) {
+                    Toast.makeText(context, "เพิ่มในรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
+                    loadFavorites(userId)
+                    onSuccess()
+                } else {
+                    errorMessage = "Failed to add favorite"
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+            }
+        }
+    }
+
+    fun removeFavorite(context: Context, favoriteId: String, userId: String) {
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.removeFavorite(favoriteId)
+                if (response.isSuccessful) {
+                    Toast.makeText(context, "ลบออกจากรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
+                    loadFavorites(userId)
+                } else {
+                    errorMessage = "Failed to remove favorite"
                 }
             } catch (e: Exception) {
                 errorMessage = "Error: ${e.message}"

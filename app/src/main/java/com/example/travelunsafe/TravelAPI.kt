@@ -17,6 +17,11 @@ interface TravelAPI {
         @Path("id") userId: String
     ): Response<User>
 
+    @GET("profile/{id}")
+    suspend fun getProfile(
+        @Path("id") userId: String
+    ): Response<ProfileSummary>
+
     @POST("users")
     suspend fun createUser(
         @Body request: RegisterRequest
@@ -134,6 +139,25 @@ interface TravelAPI {
     @POST("expenses")
     suspend fun createExpense(
         @Body request: CreateExpenseRequest
+    ): Response<ApiResponse>
+
+    // ===================================
+    //  FAVORITE PLACES
+    // ===================================
+
+    @GET("favorites")
+    suspend fun getFavorites(
+        @Query("user_id") userId: String
+    ): List<FavoritePlace>
+
+    @POST("favorites")
+    suspend fun addFavorite(
+        @Body request: AddFavoriteRequest
+    ): Response<AddFavoriteResponse>
+
+    @DELETE("favorites/{id}")
+    suspend fun removeFavorite(
+        @Path("id") favoriteId: String
     ): Response<ApiResponse>
 
     // ===================================

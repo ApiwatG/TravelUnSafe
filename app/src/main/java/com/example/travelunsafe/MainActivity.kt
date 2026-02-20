@@ -39,8 +39,7 @@ class MainActivity : ComponentActivity() {
 fun TravelApp(
     viewModel: TravelViewModel,
     prefs: SharedPreferencesManager,
-    onNavigateToSearch: () -> Unit,
-    onNavigateToAllPlans: () -> Unit
+    onNavigateToSearch: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
     var showFabMenu by remember { mutableStateOf(false) }
@@ -66,8 +65,11 @@ fun TravelApp(
                         onSearchClick = onNavigateToSearch  // ✅ lambda passed in
                     )
                     NavDestination.Messages  -> PlaceholderScreen("แชท")
-                    NavDestination.Favorites -> PlaceholderScreen("ถูกใจ")
-                    NavDestination.Profile   -> ProfileScreen()
+                    NavDestination.Favorites -> FavoritePlaceScreen(
+                        viewModel = viewModel,
+                        prefs = prefs
+                    )
+                    NavDestination.Profile   -> ProfileScreen(viewModel = viewModel, prefs = prefs)
                 }
             }
         }
@@ -81,9 +83,8 @@ fun TravelApp(
             },
             onTravelPlanClick = {
                 showFabMenu = false
-                onNavigateToAllPlans()  // ✅ lambda passed in
-            }
-        )
+                // TODO: navigate to create guide page
+            }        )
     }
 }
 
