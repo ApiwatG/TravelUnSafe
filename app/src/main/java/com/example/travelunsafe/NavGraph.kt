@@ -9,10 +9,12 @@ import androidx.navigation.compose.composable
 
 // ===== SCREEN ROUTES =====
 sealed class Screen(val route: String) {
-    object Login       : Screen("login")
-    object Register    : Screen("register")
-    object Main        : Screen("main")          // hosts bottom nav
-    object TripDetail  : Screen("trip_detail/{trip_id}") {
+    object Login      : Screen("login")
+    object Register   : Screen("register")
+    object Main       : Screen("main")
+    object Search     : Screen("search")
+    object AllPlans   : Screen("all_plans")
+    object TripDetail : Screen("trip_detail/{trip_id}") {
         fun createRoute(tripId: String) = "trip_detail/$tripId"
     }
     object HotelDetail : Screen("hotel_detail/{hotel_id}") {
@@ -53,12 +55,33 @@ fun NavGraph(navController: NavHostController) {
         }
 
         // ===== MAIN (Bottom Nav Host) =====
-        // All bottom nav screens live here — TravelApp handles the switching
+        // ✅ TravelApp gets lambdas — navController stays in NavGraph where it belongs
         composable(Screen.Main.route) {
             TravelApp(
-                navController = navController,
                 viewModel = travelViewModel,
-                prefs = prefs
+                prefs = prefs,
+                onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                onNavigateToAllPlans = { navController.navigate(Screen.AllPlans.route) }
+            )
+        }
+
+        // ===== SEARCH =====
+        composable(Screen.Search.route) {
+            SearchScreen(
+                viewModel = travelViewModel,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ===== ALL PLANS =====
+        composable(Screen.AllPlans.route) {
+            AllPlansScreen(
+                viewModel = travelViewModel,
+                prefs = prefs,
+                onBack = { navController.popBackStack() },
+                onTripClick = { tripId ->
+                    navController.navigate(Screen.TripDetail.createRoute(tripId))
+                }
             )
         }
 

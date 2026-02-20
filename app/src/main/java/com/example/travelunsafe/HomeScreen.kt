@@ -38,7 +38,7 @@ data class Guide(
 )
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(onSearchClick: () -> Unit = {}) {
     val guides = listOf(
         Guide("Paris guide", listOf(Color(0xFFB0BEC5), Color(0xFF78909C))),
         Guide("Hawaii guide", listOf(Color(0xFF80DEEA), Color(0xFF0097A7))),
@@ -54,7 +54,7 @@ fun HomeScreen() {
             .background(BackgroundWhite)
             .verticalScroll(rememberScrollState())
     ) {
-        HomeTopAppBar()
+        HomeTopAppBar(onSearchClick = onSearchClick)
         HeroBanner()
         GuidesSection(guides = guides)
         Spacer(modifier = Modifier.height(16.dp))
@@ -63,7 +63,7 @@ fun HomeScreen() {
 
 // ===== TOP APP BAR =====
 @Composable
-fun HomeTopAppBar() {
+fun HomeTopAppBar(onSearchClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -79,7 +79,7 @@ fun HomeTopAppBar() {
             fontWeight = FontWeight.Bold,
             color = TitleBlack
         )
-        IconButton(onClick = { /* Handle search */ }) {
+        IconButton(onClick = onSearchClick) {
             Icon(
                 imageVector = Icons.Default.Search,
                 contentDescription = "Search",

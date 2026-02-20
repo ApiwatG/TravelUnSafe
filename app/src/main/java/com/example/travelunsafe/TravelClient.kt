@@ -8,7 +8,7 @@ object TravelClient {
     // ⚠️ Change this to your server IP when testing on a real device
     // Use 10.0.2.2 for Android Emulator (maps to your localhost)
     // Use your actual LAN IP (e.g. 192.168.1.x) for real device
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    private const val BASE_URL = "http://192.168.1.3:3000/"
 
     val travelAPI: TravelAPI by lazy {
         Retrofit.Builder()

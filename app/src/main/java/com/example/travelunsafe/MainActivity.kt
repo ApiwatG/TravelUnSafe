@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.navigation.compose.rememberNavController
 import com.example.travelunsafe.ui.theme.TravelUnSafeTheme
 
 class MainActivity : ComponentActivity() {
@@ -18,23 +19,36 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TravelUnSafeTheme {
-                TravelApp()
+                // NavGraph owns the ONE navController — everything routes through here
+                val navController = rememberNavController()
+                NavGraph(navController = navController)
             }
         }
     }
 }
 
+// ===================================================
+//  TRAVEL APP — Bottom Nav Shell
+//
+//  ✅ CORRECT PATTERN: receives lambdas, NOT navController
+//  NavGraph calls this and passes navigate() calls as lambdas.
+//  This way TravelApp never touches a navController directly,
+//  so there's no "graph not set" crash.
+// ===================================================
 @Composable
-fun TravelApp() {
+fun TravelApp(
+    viewModel: TravelViewModel,
+    prefs: SharedPreferencesManager,
+    onNavigateToSearch: () -> Unit,
+    onNavigateToAllPlans: () -> Unit
+) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
     var showFabMenu by remember { mutableStateOf(false) }
 
-    // Wrap in Box so FabPopupMenu can float above everything
     Box(modifier = Modifier.fillMaxSize()) {
 
         Scaffold(
             bottomBar = {
-                // ✅ Just call TravelBottomNavBar here — one line!
                 TravelBottomNavBar(
                     currentDestination = currentDestination,
                     onItemSelected = {
@@ -48,7 +62,9 @@ fun TravelApp() {
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 when (currentDestination) {
-                    NavDestination.Home      -> HomeScreen()
+                    NavDestination.Home -> HomeScreen(
+                        onSearchClick = onNavigateToSearch  // ✅ lambda passed in
+                    )
                     NavDestination.Messages  -> PlaceholderScreen("แชท")
                     NavDestination.Favorites -> PlaceholderScreen("ถูกใจ")
                     NavDestination.Profile   -> ProfileScreen()
@@ -56,15 +72,16 @@ fun TravelApp() {
             }
         }
 
-        // ✅ FAB popup floats above the Scaffold
         FabPopupMenu(
             visible = showFabMenu,
             onDismiss = { showFabMenu = false },
             onGuideClick = {
-                // TODO: navigate to guide creation
+                showFabMenu = false
+                // TODO: onNavigateToGuide()
             },
             onTravelPlanClick = {
-                // TODO: navigate to travel plan creation
+                showFabMenu = false
+                onNavigateToAllPlans()  // ✅ lambda passed in
             }
         )
     }
@@ -72,7 +89,7 @@ fun TravelApp() {
 
 @Composable
 fun PlaceholderScreen(title: String) {
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
