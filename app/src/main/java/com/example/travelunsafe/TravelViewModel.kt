@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+
 class TravelViewModel : ViewModel() {
 
     // ===== STATE =====
@@ -82,9 +83,7 @@ class TravelViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading = true
             try {
-                val response = TravelClient.travelAPI.login(
-                    LoginRequest(email = email, password = password)
-                )
+                val response = TravelClient.travelAPI.login(LoginRequest(email, password))
                 if (response.isSuccessful) {
                     val body = response.body()
                     if (body != null && !body.error) {
@@ -95,21 +94,15 @@ class TravelViewModel : ViewModel() {
                             email      = body.email ?: email,
                             role       = body.role ?: "user"
                         )
-                        currentUser = User(
-                            user_id  = body.user_id ?: "",
-                            username = body.username ?: "",
-                            email    = body.email ?: email,
-                            role     = body.role ?: "user"
-                        )
                         onSuccess()
                     } else {
-                        onError(body?.message ?: "Login failed")
+                        onError(body?.message ?: "อีเมลหรือรหัสผ่านไม่ถูกต้อง")
                     }
                 } else {
-                    onError("Login failed: ${response.message()}")
+                    onError("อีเมลหรือรหัสผ่านไม่ถูกต้อง")
                 }
             } catch (e: Exception) {
-                onError("Network error: ${e.message}")
+                onError("ไม่สามารถเชื่อมต่อ Server ได้")
             } finally {
                 isLoading = false
             }
@@ -130,14 +123,21 @@ class TravelViewModel : ViewModel() {
                     RegisterRequest(username = username, email = email, password = password)
                 )
                 if (response.isSuccessful) {
-                    Toast.makeText(context, "Registration successful!", Toast.LENGTH_LONG).show()
+                    Toast.makeText(context, "สมัครสมาชิกสำเร็จ!", Toast.LENGTH_LONG).show()
                     onSuccess()
                 } else {
-                    errorMessage = "Registration failed: ${response.message()}"
+                    // Parse actual error body (not HTTP phrase)
+                    val errorBody = response.errorBody()?.string()
+                    val msg = try {
+                        org.json.JSONObject(errorBody ?: "").optString("message", response.message())
+                    } catch (e: Exception) {
+                        response.message()
+                    }
+                    errorMessage = "สมัครสมาชิกไม่สำเร็จ: $msg"
                     Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                 }
             } catch (e: Exception) {
-                errorMessage = "Network error: ${e.message}"
+                errorMessage = "ไม่สามารถเชื่อมต่อ Server ได้: ${e.message}"
                 Toast.makeText(context, errorMessage, Toast.LENGTH_SHORT).show()
             } finally {
                 isLoading = false
@@ -514,21 +514,6 @@ class TravelViewModel : ViewModel() {
     }
 
     // ===================================
-    //  ITINERARY
-    // ===================================
-
-    fun loadItinerary(tripId: String) {
-        viewModelScope.launch {
-            try {
-                itinerary = TravelClient.travelAPI.getItinerary(tripId)
-                errorMessage = ""
-            } catch (e: Exception) {
-                errorMessage = "Failed to load itinerary: ${e.message}"
-            }
-        }
-    }
-
-    // ===================================
     //  GUIDES
     // ===================================
 
@@ -539,6 +524,21 @@ class TravelViewModel : ViewModel() {
                 errorMessage = ""
             } catch (e: Exception) {
                 errorMessage = "Failed to load guides: ${e.message}"
+            }
+        }
+    }
+
+    // ===================================
+    //  ITINERARY
+    // ===================================
+
+    fun loadItinerary(tripId: String) {
+        viewModelScope.launch {
+            try {
+                itinerary = TravelClient.travelAPI.getItinerary(tripId)
+                errorMessage = ""
+            } catch (e: Exception) {
+                errorMessage = "Failed to load itinerary: ${e.message}"
             }
         }
     }
