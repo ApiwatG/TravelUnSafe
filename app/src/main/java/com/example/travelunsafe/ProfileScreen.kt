@@ -36,12 +36,12 @@ fun formatDateRange(start: String?, end: String?): String {
 
 val OrangeColor = Color(0xFFFF9800)
 val LightGrayProfile = Color(0xFFCFD8DC)
-
 @Composable
 fun ProfileScreen(
     viewModel: TravelViewModel? = null,
     prefs: SharedPreferencesManager? = null,
-    onLogout: (() -> Unit)? = null
+    onLogout: (() -> Unit)? = null,
+    onFriendsClick: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val localPrefs = prefs ?: remember { SharedPreferencesManager(context) }
@@ -49,6 +49,26 @@ fun ProfileScreen(
 
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("การเดินทาง", "คู่มือ", "บันทึกการเดินทาง")
+
+    // Image picker launcher
+    val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+        contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
+    ) { uri ->
+        if (uri != null && viewModel != null) {
+            viewModel.uploadProfileImage(
+                context   = context,
+                userId    = userId,
+                imageUri  = uri,
+                onSuccess = { path ->
+                    android.widget.Toast.makeText(context, "อัพโหลดรูปสำเร็จ", android.widget.Toast.LENGTH_SHORT).show()
+                    viewModel.loadProfile(userId)
+                },
+                onError = { msg ->
+                    android.widget.Toast.makeText(context, "อัพโหลดไม่สำเร็จ: $msg", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            )
+        }
+    }
 
     // Load profile when screen opens
     LaunchedEffect(userId) {
@@ -69,7 +89,10 @@ fun ProfileScreen(
         // ===== HEADER + PROFILE PIC OVERLAP =====
         Box {
             Column {
-                ProfileHeaderWithMap()
+                ProfileHeaderWithMap(
+                    onFriendsClick = onFriendsClick,
+                    onLogout = onLogout
+                )
                 ProfileInfoRow(
                     username = profile?.user?.username ?: localPrefs.getUsername().ifBlank { "ผู้ใช้" },
                     email = profile?.user?.email ?: localPrefs.getEmail(),
@@ -86,6 +109,7 @@ fun ProfileScreen(
                     .offset(y = 160.dp)
                     .zIndex(2f)
             ) {
+                // Avatar circle
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -104,6 +128,22 @@ fun ProfileScreen(
                         // TODO: AsyncImage with profile?.user?.image_profile
                         Text(text = "👤", fontSize = 32.sp)
                     }
+                }
+                // ➕ Upload button (bottom-right of avatar)
+                IconButton(
+                    onClick = { imagePickerLauncher.launch("image/*") },
+                    modifier = Modifier
+                        .size(26.dp)
+                        .align(Alignment.BottomEnd)
+                        .clip(CircleShape)
+                        .background(OrangeColor)
+                ) {
+                    Icon(
+                        Icons.Filled.Add,
+                        contentDescription = "เปลี่ยนรูป",
+                        tint = Color.White,
+                        modifier = Modifier.size(16.dp)
+                    )
                 }
             }
         }
@@ -157,33 +197,18 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(80.dp))
 
-        // ===== LOGOUT BUTTON =====
-        if (onLogout != null) {
-            Button(
-                onClick = {
-                    viewModel?.logout()
-                    localPrefs.logout()
-                    onLogout()
-                },
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
-                shape = RoundedCornerShape(24.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 24.dp, vertical = 8.dp)
-            ) {
-                Icon(Icons.Default.ExitToApp, null, tint = Color.White, modifier = Modifier.size(18.dp))
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("ออกจากระบบ", color = Color.White, fontWeight = FontWeight.Bold)
-            }
-        }
-
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
 
 // ===== MAP HEADER =====
 @Composable
-fun ProfileHeaderWithMap() {
+fun ProfileHeaderWithMap(
+    onFriendsClick: (() -> Unit)? = null,
+    onLogout: (() -> Unit)? = null
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
     Box(
         modifier = Modifier.fillMaxWidth().height(200.dp)
     ) {
@@ -193,11 +218,66 @@ fun ProfileHeaderWithMap() {
             )
         )
         Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0x22FFFFFF), Color.Transparent))))
-        IconButton(
-            modifier = Modifier.align(Alignment.TopEnd).statusBarsPadding().padding(4.dp),
-            onClick = { }
+
+        // 3-dot button + dropdown
+        Box(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .statusBarsPadding()
+                .padding(4.dp)
         ) {
-            Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color(0xFF424242))
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Default.MoreVert, contentDescription = "More", tint = Color(0xFF424242))
+            }
+
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false },
+                modifier = Modifier.background(Color.White)
+            ) {
+                // Friends option
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.People,
+                                contentDescription = null,
+                                tint = Color(0xFF42A5F5),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("เพื่อน", fontSize = 15.sp)
+                        }
+                    },
+                    onClick = {
+                        showMenu = false
+                        onFriendsClick?.invoke()
+                    }
+                )
+
+                HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
+
+                // Logout option
+                DropdownMenuItem(
+                    text = {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Filled.ExitToApp,
+                                contentDescription = null,
+                                tint = Color(0xFFEF5350),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Text("ออกจากระบบ", fontSize = 15.sp, color = Color(0xFFEF5350))
+                        }
+                    },
+                    onClick = {
+                        showMenu = false
+                        // Clear session before navigating
+                        onLogout?.invoke()
+                    }
+                )
+            }
         }
     }
 }

@@ -11,6 +11,46 @@ interface TravelAPI {
     ): Response<LoginResponse>
 
     // ===================================
+    //  IMAGE UPLOAD
+    // ===================================
+
+    @Multipart
+    @POST("upload/profile")
+    suspend fun uploadProfileImage(
+        @Query("user_id") userId: String,
+        @Part image: okhttp3.MultipartBody.Part
+    ): Response<UploadResponse>
+
+    // ===================================
+    //  FRIENDS
+    // ===================================
+
+    @GET("friends/{user_id}")
+    suspend fun getFriends(
+        @Path("user_id") userId: String
+    ): Response<FriendListResponse>
+
+    @POST("friends/request")
+    suspend fun sendFriendRequest(
+        @Body request: SendFriendRequest
+    ): Response<ApiResponse>
+
+    @PUT("friends/{id}/accept")
+    suspend fun acceptFriendRequest(
+        @Path("id") friendshipId: String
+    ): Response<ApiResponse>
+
+    @PUT("friends/{id}/decline")
+    suspend fun declineFriendRequest(
+        @Path("id") friendshipId: String
+    ): Response<ApiResponse>
+
+    @DELETE("friends/{id}")
+    suspend fun unfriend(
+        @Path("id") friendshipId: String
+    ): Response<ApiResponse>
+
+    // ===================================
     //  GUIDES
     // ===================================
 

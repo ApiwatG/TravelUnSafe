@@ -238,3 +238,46 @@ data class AddFavoriteResponse(
     val message: String,
     val favorite_id: String? = null
 )
+
+// ===== FRIENDSHIP =====
+data class FriendItem(
+    val friendship_id: String,
+    val friend_id: String,
+    val friend_username: String,
+    val friend_email: String,
+    val friend_image: String? = null,
+    val status: String = "accepted",
+    val createdAt: String? = null
+)
+
+data class FriendRequest(
+    val friendship_id: String,
+    val requester_id: String? = null,
+    val requester_username: String? = null,
+    val requester_email: String? = null,
+    val requester_image: String? = null,
+    val recipient_id: String? = null,
+    val recipient_username: String? = null,
+    val recipient_email: String? = null,
+    val recipient_image: String? = null,
+    val status: String = "pending",
+    val createdAt: String? = null
+)
+
+data class FriendListResponse(
+    val friends: List<FriendItem>,
+    val receivedRequests: List<FriendRequest>,
+    val sentRequests: List<FriendRequest>
+)
+
+data class SendFriendRequest(
+    val requester_id: String,
+    val recipient_email: String
+)
+
+// ===== PROFILE IMAGE UPLOAD =====
+data class UploadResponse(
+    val error: Boolean,
+    val message: String,
+    val image_profile: String? = null
+)

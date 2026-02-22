@@ -40,6 +40,7 @@ fun TravelApp(
     viewModel: TravelViewModel,
     prefs: SharedPreferencesManager,
     onNavigateToSearch: () -> Unit,
+    onNavigateToFriends: () -> Unit,
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -75,7 +76,12 @@ fun TravelApp(
                     NavDestination.Profile   -> ProfileScreen(
                         viewModel = viewModel,
                         prefs = prefs,
-                        onLogout = onLogout
+                        onLogout = {
+                            viewModel.logout()
+                            prefs.logout()
+                            onLogout()
+                        },
+                        onFriendsClick = onNavigateToFriends
                     )
                 }
             }

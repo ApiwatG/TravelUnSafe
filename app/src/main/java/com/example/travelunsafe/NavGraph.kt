@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 
 // ===== SCREEN ROUTES =====
 sealed class Screen(val route: String) {
-    object Landing     : Screen("landing")
     object Login       : Screen("login")
     object Register    : Screen("register")
     object Main        : Screen("main")
@@ -20,6 +19,7 @@ sealed class Screen(val route: String) {
     object HotelDetail : Screen("hotel_detail/{hotel_id}") {
         fun createRoute(hotelId: String) = "hotel_detail/$hotelId"
     }
+    object Friends : Screen("friends")
 }
 
 @Composable
@@ -28,20 +28,12 @@ fun NavGraph(navController: NavHostController) {
     val context = LocalContext.current
     val prefs = remember { SharedPreferencesManager(context) }
 
-    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Landing.route
+    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Login.route
 
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
-
-        composable(Screen.Landing.route) {
-            LandingScreen(onStart = {
-                navController.navigate(Screen.Login.route) {
-                    popUpTo(Screen.Landing.route) { inclusive = true }
-                }
-            })
-        }
 
         composable(Screen.Login.route) {
             LoginScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
@@ -56,6 +48,7 @@ fun NavGraph(navController: NavHostController) {
                 viewModel = travelViewModel,
                 prefs = prefs,
                 onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                onNavigateToFriends = { navController.navigate(Screen.Friends.route) },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
@@ -76,6 +69,14 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.HotelDetail.route) { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getString("hotel_id") ?: return@composable
             HotelDetailScreen(hotelId = hotelId, navController = navController, viewModel = travelViewModel)
+        }
+
+        composable(Screen.Friends.route) {
+            FriendScreen(
+                viewModel = travelViewModel,
+                prefs = prefs,
+                onBack = { navController.popBackStack() }
+            )
         }
     }
 }

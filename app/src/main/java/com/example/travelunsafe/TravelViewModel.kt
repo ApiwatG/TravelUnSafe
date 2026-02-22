@@ -8,6 +8,9 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 class TravelViewModel : ViewModel() {
 
@@ -46,6 +49,14 @@ class TravelViewModel : ViewModel() {
         private set
 
     var guides by mutableStateOf<List<GuideModel>>(emptyList())
+        private set
+
+    // Friends
+    var friends by mutableStateOf<List<FriendItem>>(emptyList())
+        private set
+    var receivedRequests by mutableStateOf<List<FriendRequest>>(emptyList())
+        private set
+    var sentRequests by mutableStateOf<List<FriendRequest>>(emptyList())
         private set
 
     // Profile summary
@@ -540,6 +551,116 @@ class TravelViewModel : ViewModel() {
             } catch (e: Exception) {
                 errorMessage = "Failed to load itinerary: ${e.message}"
             }
+        }
+    }
+
+    // ===================================
+    //  PROFILE IMAGE UPLOAD
+    // ===================================
+
+    fun uploadProfileImage(
+        context: Context,
+        userId: String,
+        imageUri: android.net.Uri,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val stream = context.contentResolver.openInputStream(imageUri)
+                    ?: return@launch onError("Cannot read image")
+                val bytes = stream.readBytes()
+                stream.close()
+                val mimeType = context.contentResolver.getType(imageUri) ?: "image/jpeg"
+                val ext = mimeType.substringAfter("/")
+                val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                val part = MultipartBody.Part.createFormData("image", "profile.$ext", requestBody)
+                val response = TravelClient.travelAPI.uploadProfileImage(userId, part)
+                if (response.isSuccessful && response.body()?.error == false) {
+                    onSuccess(response.body()?.image_profile ?: "")
+                } else {
+                    val errBody = response.errorBody()?.string()
+                    val msg = try { org.json.JSONObject(errBody ?: "").optString("message") } catch (e: Exception) { response.message() }
+                    onError(msg)
+                }
+            } catch (e: Exception) {
+                onError("Network error: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    // ===================================
+    //  FRIENDS
+    // ===================================
+
+    fun loadFriends(userId: String) {
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.getFriends(userId)
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    friends = (body?.friends ?: emptyList()).filter { it.status == "accepted" }
+                    receivedRequests = (body?.receivedRequests ?: emptyList()).filter { it.status == "pending" }
+                    sentRequests = (body?.sentRequests ?: emptyList()).filter { it.status == "pending" }
+                }
+            } catch (e: Exception) {
+                errorMessage = "Failed to load friends: ${e.message}"
+            }
+        }
+    }
+
+    fun sendFriendRequest(
+        requesterId: String,
+        recipientEmail: String,
+        onSuccess: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = TravelClient.travelAPI.sendFriendRequest(
+                    SendFriendRequest(requester_id = requesterId, recipient_email = recipientEmail)
+                )
+                if (response.isSuccessful) {
+                    onSuccess(response.body()?.message ?: "ส่งคำขอแล้ว")
+                    loadFriends(requesterId)
+                } else {
+                    val errBody = response.errorBody()?.string()
+                    val msg = try { org.json.JSONObject(errBody ?: "").optString("message") } catch (e: Exception) { response.message() }
+                    onError(msg)
+                }
+            } catch (e: Exception) {
+                onError("Network error: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
+
+    fun acceptFriendRequest(userId: String, friendshipId: String) {
+        viewModelScope.launch {
+            try { TravelClient.travelAPI.acceptFriendRequest(friendshipId) } catch (_: Exception) {}
+            loadFriends(userId)
+        }
+    }
+
+    fun declineFriendRequest(userId: String, friendshipId: String) {
+        viewModelScope.launch {
+            try { TravelClient.travelAPI.declineFriendRequest(friendshipId) } catch (_: Exception) {}
+            loadFriends(userId)
+        }
+    }
+
+    fun unfriend(context: Context, userId: String, friendshipId: String) {
+        viewModelScope.launch {
+            try {
+                TravelClient.travelAPI.unfriend(friendshipId)
+                Toast.makeText(context, "ยกเลิกการเป็นเพื่อนแล้ว", Toast.LENGTH_SHORT).show()
+            } catch (_: Exception) {}
+            loadFriends(userId)
         }
     }
 }
