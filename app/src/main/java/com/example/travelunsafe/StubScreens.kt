@@ -15,56 +15,9 @@ import androidx.navigation.NavHostController
 
 // ============================================================
 //  STUB SCREENS — Replace each with real UI when ready
-//  TravelApp stub is REMOVED — the real one lives in MainActivity.kt
+//  LoginScreen  → now in LoginScreen.kt  (real UI)
+//  RegisterScreen → now in RegisterScreen.kt (real UI)
 // ============================================================
-
-// ===== LOGIN SCREEN STUB =====
-// TODO: Replace with real login UI
-@Composable
-fun LoginScreen(
-    navController: NavHostController,
-    viewModel: TravelViewModel,
-    prefs: SharedPreferencesManager
-) {
-    StubScreen(
-        title = "หน้า Login",
-        emoji = "🔐",
-        buttonText = "ทดสอบด้วย U0001 (john_doe)",
-        onButtonClick = {
-            // ✅ Save U0001 session so whole app loads real data
-            prefs.saveLoginStatus(
-                isLoggedIn = true,
-                userId    = "U0001",
-                username  = "john_doe",
-                email     = "john@example.com",
-                role      = "user"
-            )
-            navController.navigate(Screen.Main.route) {
-                popUpTo(Screen.Login.route) { inclusive = true }
-            }
-        },
-        secondaryButtonText = "ไปหน้าสมัครสมาชิก",
-        onSecondaryClick = {
-            navController.navigate(Screen.Register.route)
-        }
-    )
-}
-
-// ===== REGISTER SCREEN STUB =====
-// TODO: Replace with real register UI
-@Composable
-fun RegisterScreen(
-    navController: NavHostController,
-    viewModel: TravelViewModel,
-    prefs: SharedPreferencesManager
-) {
-    StubScreen(
-        title = "หน้าสมัครสมาชิก",
-        emoji = "📝",
-        buttonText = "กลับไป Login",
-        onButtonClick = { navController.popBackStack() }
-    )
-}
 
 // ===== TRIP DETAIL SCREEN STUB =====
 // TODO: Replace with real trip detail (itinerary + expenses)

@@ -14,6 +14,7 @@ class SharedPreferencesManager(context: Context) {
         private const val KEY_USERNAME     = "username"
         private const val KEY_EMAIL        = "email"
         private const val KEY_ROLE         = "role"
+        private const val KEY_SAVED_EMAIL  = "saved_email"   // friend's "remember email" feature
     }
 
     // ✅ Save after login / register
@@ -61,5 +62,17 @@ class SharedPreferencesManager(context: Context) {
             if (!keepUserId) remove(KEY_USER_ID)
             apply()
         }
+    }
+
+    // ✅ Remember email feature (from friend's branch)
+    fun saveEmail(email: String) {
+        preferences.edit().putString(KEY_SAVED_EMAIL, email).apply()
+    }
+
+    fun getSavedEmail(): String =
+        preferences.getString(KEY_SAVED_EMAIL, "") ?: ""
+
+    fun clearSavedEmail() {
+        preferences.edit().remove(KEY_SAVED_EMAIL).apply()
     }
 }

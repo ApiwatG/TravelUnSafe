@@ -66,8 +66,52 @@ class TravelViewModel : ViewModel() {
     }
 
     // ===================================
-    //  AUTH — register + load user
+    //  AUTH — login + register + load user
     // ===================================
+
+    fun login(
+        email: String,
+        password: String,
+        prefs: SharedPreferencesManager,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                val response = TravelClient.travelAPI.login(
+                    LoginRequest(email = email, password = password)
+                )
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    if (body != null && !body.error) {
+                        prefs.saveLoginStatus(
+                            isLoggedIn = true,
+                            userId     = body.user_id ?: "",
+                            username   = body.username ?: "",
+                            email      = body.email ?: email,
+                            role       = body.role ?: "user"
+                        )
+                        currentUser = User(
+                            user_id  = body.user_id ?: "",
+                            username = body.username ?: "",
+                            email    = body.email ?: email,
+                            role     = body.role ?: "user"
+                        )
+                        onSuccess()
+                    } else {
+                        onError(body?.message ?: "Login failed")
+                    }
+                } else {
+                    onError("Login failed: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                onError("Network error: ${e.message}")
+            } finally {
+                isLoading = false
+            }
+        }
+    }
 
     fun register(
         context: Context,

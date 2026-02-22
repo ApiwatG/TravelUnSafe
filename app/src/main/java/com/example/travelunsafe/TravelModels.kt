@@ -21,6 +21,15 @@ data class LoginRequest(
     val password: String
 )
 
+data class LoginResponse(
+    val error: Boolean,
+    val message: String,
+    val user_id: String? = null,
+    val username: String? = null,
+    val email: String? = null,
+    val role: String? = null
+)
+
 data class RegisterRequest(
     val username: String,
     val email: String,

@@ -5,6 +5,11 @@ import retrofit2.http.*
 
 interface TravelAPI {
 
+    @POST("login")
+    suspend fun login(
+        @Body request: LoginRequest
+    ): Response<LoginResponse>
+
     // ===================================
     //  USERS
     // ===================================
