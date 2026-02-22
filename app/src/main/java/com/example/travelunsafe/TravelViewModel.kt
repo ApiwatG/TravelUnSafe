@@ -44,6 +44,9 @@ class TravelViewModel : ViewModel() {
     var favorites by mutableStateOf<List<FavoritePlace>>(emptyList())
         private set
 
+    var guides by mutableStateOf<List<GuideModel>>(emptyList())
+        private set
+
     // Profile summary
     var profileSummary by mutableStateOf<ProfileSummary?>(null)
         private set
@@ -521,6 +524,21 @@ class TravelViewModel : ViewModel() {
                 errorMessage = ""
             } catch (e: Exception) {
                 errorMessage = "Failed to load itinerary: ${e.message}"
+            }
+        }
+    }
+
+    // ===================================
+    //  GUIDES
+    // ===================================
+
+    fun loadGuides() {
+        viewModelScope.launch {
+            try {
+                guides = TravelClient.travelAPI.getGuides()
+                errorMessage = ""
+            } catch (e: Exception) {
+                errorMessage = "Failed to load guides: ${e.message}"
             }
         }
     }

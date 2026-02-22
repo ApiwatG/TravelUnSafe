@@ -39,7 +39,8 @@ class MainActivity : ComponentActivity() {
 fun TravelApp(
     viewModel: TravelViewModel,
     prefs: SharedPreferencesManager,
-    onNavigateToSearch: () -> Unit
+    onNavigateToSearch: () -> Unit,
+    onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
     var showFabMenu by remember { mutableStateOf(false) }
@@ -62,14 +63,20 @@ fun TravelApp(
             Box(modifier = Modifier.padding(innerPadding)) {
                 when (currentDestination) {
                     NavDestination.Home -> HomeScreen(
-                        onSearchClick = onNavigateToSearch  // ✅ lambda passed in
+                        viewModel = viewModel,
+                        prefs = prefs,
+                        onSearchClick = onNavigateToSearch
                     )
                     NavDestination.Messages  -> PlaceholderScreen("แชท")
                     NavDestination.Favorites -> FavoritePlaceScreen(
                         viewModel = viewModel,
                         prefs = prefs
                     )
-                    NavDestination.Profile   -> ProfileScreen(viewModel = viewModel, prefs = prefs)
+                    NavDestination.Profile   -> ProfileScreen(
+                        viewModel = viewModel,
+                        prefs = prefs,
+                        onLogout = onLogout
+                    )
                 }
             }
         }

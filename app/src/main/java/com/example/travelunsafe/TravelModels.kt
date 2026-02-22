@@ -194,7 +194,13 @@ data class GuideModel(
     val guide_id: String,
     val guide_name: String,
     val image_guide: String? = null,
-    val provinces_name: String? = null
+    val guide_detail: String? = null,
+    val provinces_id: String? = null,
+    val provinces_name: String? = null,
+    val user_id: String? = null,
+    val username: String? = null,
+    val image_profile: String? = null,
+    val createdAt: String? = null
 )
 
 // ===== PROFILE SUMMARY (returned by /profile/:id) =====

@@ -1,18 +1,13 @@
 package com.example.travelunsafe
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Map
-import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -30,13 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
-// ===== COLORS =====
+fun formatDateRange(start: String?, end: String?): String {
+    return when {
+        !start.isNullOrBlank() && !end.isNullOrBlank() -> "$start – $end"
+        !start.isNullOrBlank() -> start
+        !end.isNullOrBlank() -> end
+        else -> ""
+    }
+}
+
 val OrangeColor = Color(0xFFFF9800)
 val LightGrayProfile = Color(0xFFCFD8DC)
+
 @Composable
 fun ProfileScreen(
     viewModel: TravelViewModel? = null,
-    prefs: SharedPreferencesManager? = null
+    prefs: SharedPreferencesManager? = null,
+    onLogout: (() -> Unit)? = null
 ) {
     val context = LocalContext.current
     val localPrefs = prefs ?: remember { SharedPreferencesManager(context) }
@@ -151,15 +156,29 @@ fun ProfileScreen(
         }
 
         Spacer(modifier = Modifier.height(80.dp))
-    }
-}
 
-// ===== HELPER =====
-fun formatDateRange(startDate: String?, endDate: String?): String {
-    if (startDate.isNullOrBlank() && endDate.isNullOrBlank()) return ""
-    if (startDate.isNullOrBlank()) return endDate ?: ""
-    if (endDate.isNullOrBlank()) return startDate
-    return "$startDate - $endDate"
+        // ===== LOGOUT BUTTON =====
+        if (onLogout != null) {
+            Button(
+                onClick = {
+                    viewModel?.logout()
+                    localPrefs.logout()
+                    onLogout()
+                },
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE53935)),
+                shape = RoundedCornerShape(24.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 24.dp, vertical = 8.dp)
+            ) {
+                Icon(Icons.Default.ExitToApp, null, tint = Color.White, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("ออกจากระบบ", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+    }
 }
 
 // ===== MAP HEADER =====

@@ -9,6 +9,7 @@ import androidx.navigation.compose.composable
 
 // ===== SCREEN ROUTES =====
 sealed class Screen(val route: String) {
+    object Landing     : Screen("landing")
     object Login       : Screen("login")
     object Register    : Screen("register")
     object Main        : Screen("main")
@@ -27,12 +28,20 @@ fun NavGraph(navController: NavHostController) {
     val context = LocalContext.current
     val prefs = remember { SharedPreferencesManager(context) }
 
-    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Login.route
+    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Landing.route
 
     NavHost(
         navController = navController,
         startDestination = startDestination
     ) {
+
+        composable(Screen.Landing.route) {
+            LandingScreen(onStart = {
+                navController.navigate(Screen.Login.route) {
+                    popUpTo(Screen.Landing.route) { inclusive = true }
+                }
+            })
+        }
 
         composable(Screen.Login.route) {
             LoginScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
@@ -46,7 +55,12 @@ fun NavGraph(navController: NavHostController) {
             TravelApp(
                 viewModel = travelViewModel,
                 prefs = prefs,
-                onNavigateToSearch = { navController.navigate(Screen.Search.route) }
+                onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                onLogout = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             )
         }
 

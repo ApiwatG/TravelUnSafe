@@ -11,6 +11,13 @@ interface TravelAPI {
     ): Response<LoginResponse>
 
     // ===================================
+    //  GUIDES
+    // ===================================
+
+    @GET("guides")
+    suspend fun getGuides(): List<GuideModel>
+
+    // ===================================
     //  USERS
     // ===================================
 
