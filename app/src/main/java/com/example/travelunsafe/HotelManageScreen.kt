@@ -215,7 +215,7 @@ fun HotelManageScreen(viewModel: HotelViewModel, onSaveSuccess: () -> Unit) {
                         maxGuest      = maxGuest.toIntOrNull() ?: 0,
                         contactPhone  = contactPhone,
                         provincesId   = "PV001",
-                        imageUrl      = savedImagePath  // ← String path แทน Uri
+                        imageUrl      = savedImagePath
                     )
                     android.util.Log.d("HOTEL_DEBUG", "Sending: $hotel")
                     viewModel.insertHotel(hotel)

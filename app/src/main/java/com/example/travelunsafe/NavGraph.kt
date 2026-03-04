@@ -7,8 +7,9 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.travelunsafe.UserManageScreen
+import com.example.travelunsafe.UserViewModel
 
 @Composable
 fun NavGraph(navController: NavHostController) {
@@ -16,22 +17,25 @@ fun NavGraph(navController: NavHostController) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.HotelManage.route
+        startDestination = Screen.UserManage.route
     ) {
         composable(Screen.HotelManage.route) {
             HotelManageScreen(viewModel = viewModel, onSaveSuccess = { navController.popBackStack() })
         }
     }
 }
+
 @Composable
 fun NavGraph1(navController: NavHostController) {
-    val viewModel: HotelViewModel = viewModel()
+    val hotelViewModel: HotelViewModel = viewModel()
+    val userViewModel: UserViewModel = viewModel()  // ← เพิ่ม
 
-    NavHost(navController = navController, startDestination = Screen.HotelList.route) {
+    NavHost(navController = navController, startDestination = Screen.UserManage.route) {
 
+        // ===== Hotel =====
         composable(Screen.HotelList.route) {
             HotelListScreen(
-                viewModel = viewModel,
+                viewModel = hotelViewModel,
                 onAddClick = { navController.navigate(Screen.HotelManage.route) },
                 onEditClick = { hotel ->
                     navController.navigate(Screen.HotelEdit.createRoute(hotel.hotelId))
@@ -41,7 +45,7 @@ fun NavGraph1(navController: NavHostController) {
 
         composable(Screen.HotelManage.route) {
             HotelManageScreen(
-                viewModel = viewModel,
+                viewModel = hotelViewModel,
                 onSaveSuccess = { navController.popBackStack() }
             )
         }
@@ -51,30 +55,19 @@ fun NavGraph1(navController: NavHostController) {
             arguments = listOf(navArgument("hotelId") { type = NavType.StringType })
         ) { backStackEntry ->
             val hotelId = backStackEntry.arguments?.getString("hotelId") ?: ""
-            val hotel = viewModel.hotels.collectAsState().value.find { it.hotelId == hotelId }
+            val hotel = hotelViewModel.hotels.collectAsState().value.find { it.hotelId == hotelId }
             hotel?.let {
                 HotelEditScreen(
-                    viewModel = viewModel,
+                    viewModel = hotelViewModel,
                     hotel = it,
                     onSaveSuccess = { navController.popBackStack() }
                 )
             }
         }
-        composable(
-            route = Screen.HotelEdit.route,
-            arguments = listOf(navArgument("hotelId") { type = NavType.StringType })
-        ) { backStackEntry ->
-            val hotelId = backStackEntry.arguments?.getString("hotelId") ?: ""
-            val hotel = viewModel.hotels.collectAsState().value
-                .find { it.hotelId == hotelId }
-            hotel?.let {
-                HotelEditScreen(
-                    viewModel = viewModel,
-                    hotel = it,
-                    onSaveSuccess = { navController.popBackStack() }
-                )
-            }
+
+        // ===== User =====
+        composable(Screen.UserManage.route) {
+            UserManageScreen(viewModel = userViewModel)
         }
     }
 }
-
