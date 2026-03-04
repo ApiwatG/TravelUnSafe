@@ -11,26 +11,16 @@ import androidx.navigation.navArgument
 import com.example.travelunsafe.UserManageScreen
 import com.example.travelunsafe.UserViewModel
 
-@Composable
-fun NavGraph(navController: NavHostController) {
-    val viewModel: HotelViewModel = viewModel()
 
-    NavHost(
-        navController = navController,
-        startDestination = Screen.UserManage.route
-    ) {
-        composable(Screen.HotelManage.route) {
-            HotelManageScreen(viewModel = viewModel, onSaveSuccess = { navController.popBackStack() })
-        }
-    }
-}
 
 @Composable
 fun NavGraph1(navController: NavHostController) {
     val hotelViewModel: HotelViewModel = viewModel()
     val userViewModel: UserViewModel = viewModel()  // ← เพิ่ม
 
-    NavHost(navController = navController, startDestination = Screen.UserManage.route) {
+    NavHost(navController = navController,
+        startDestination = Screen.HotelList.route // จะดูหน้า user เปลี่ยนเป็น UserManage
+    ) {
 
         // ===== Hotel =====
         composable(Screen.HotelList.route) {
