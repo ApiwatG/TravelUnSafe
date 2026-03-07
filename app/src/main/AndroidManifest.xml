@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+
     <application
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
@@ -10,18 +13,33 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.TravelUnSafe">
+        android:theme="@style/Theme.TravelUnSafe"
+        android:usesCleartextTraffic="true">
+
         <activity
-            android:name=".MainActivity"
+            android:name=".ui.theme.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.TravelUnSafe">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- แก้ไข Path ให้ถูกต้องตามโครงสร้างไฟล์จริง -->
+        <activity
+            android:name=".ui.theme.GuideDetailActivity"
+            android:exported="false"
+            android:label="รายละเอียดไกด์"
+            android:theme="@style/Theme.TravelUnSafe" />
+
+        <activity
+            android:name="com.example.travelunsafe.CreateGuideActivity"
+            android:exported="false"
+            android:label="สร้างไกด์ใหม่"
+            android:theme="@style/Theme.TravelUnSafe" />
+
     </application>
 
 </manifest>
