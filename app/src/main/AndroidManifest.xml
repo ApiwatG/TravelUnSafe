@@ -27,10 +27,10 @@
             </intent-filter>
         </activity>
 
-        <!-- แก้ไข Path ให้ถูกต้องตามโครงสร้างไฟล์จริง -->
+        <!-- ตั้งค่า exported เป็น true เพื่อให้สามารถสั่ง Run หน้าจอนี้ตรงๆ ได้ -->
         <activity
             android:name=".ui.theme.GuideDetailActivity"
-            android:exported="false"
+            android:exported="true"
             android:label="รายละเอียดไกด์"
             android:theme="@style/Theme.TravelUnSafe" />
 

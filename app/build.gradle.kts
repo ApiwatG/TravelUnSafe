@@ -43,8 +43,15 @@ android {
 dependencies {
     implementation("io.coil-kt:coil-compose:2.5.0")
 
-    // OkHttp สำหรับส่ง API
+    // Networking
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
+    
+    // UI Components (Classic Views)
+    implementation("androidx.appcompat:appcompat:1.7.1")
+    implementation("androidx.cardview:cardview:1.0.0")
+    implementation("com.google.android.material:material:1.12.0")
+
+    // Compose
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -58,7 +65,6 @@ dependencies {
     // Room
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-    implementation(libs.androidx.appcompat)
     ksp(libs.androidx.room.compiler)
 
     testImplementation(libs.junit)
