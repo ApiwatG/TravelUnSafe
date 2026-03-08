@@ -70,11 +70,13 @@ data class Hotel(
     val hotel_name: String,
     val address: String? = null,
     val province: String? = null,
+    val province_name: String? = null,   // JOIN alias used by HotelCard
     val price_per_night: Int = 0,
     val max_guest: Int = 1,
     val contact_phone: String? = null,
     val image_url: String? = null,
-    val provinces_id: String? = null
+    val provinces_id: String? = null,
+    val hoteldetail: String? = null      // hotel description text
 )
 
 // ===== PLACE =====
@@ -84,7 +86,10 @@ data class Place(
     val location: String? = null,
     val view: Int = 0,
     val category_id: String? = null,
-    val provinces_id: String? = null
+    val provinces_id: String? = null,
+    // ✅ Add these for /api/places JOIN fields
+    val category: String? = null,
+    val province: String? = null
 )
 
 // ===== PROVINCE =====
@@ -280,4 +285,32 @@ data class UploadResponse(
     val error: Boolean,
     val message: String,
     val image_profile: String? = null
+)
+
+// ===== TRIP PLAN (used by TripPlanAPI / PlanDetailViewModel) =====
+
+// Friend model used by PlanDetailViewModel (trip members list)
+// role = "owner" | "member" — comes from the UNION query in server
+data class Friend(
+    val user_id: String,
+    val username: String,
+    val image_profile: String? = null,
+    val role: String? = null
+)
+
+data class UpdateTripRequest(
+    val trip_name: String
+)
+
+data class AddMemberRequest(
+    val user_id: String
+)
+
+data class CreateItineraryRequest(
+    val trip_id: String,
+    val place_id: String,
+    val date: String? = null,
+    val start_time: String? = null,
+    val end_time: String? = null,
+    val note: String? = null
 )

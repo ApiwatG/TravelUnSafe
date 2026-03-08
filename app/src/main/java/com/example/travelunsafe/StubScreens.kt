@@ -40,25 +40,8 @@ fun TripDetailScreen(
     )
 }
 
-// ===== HOTEL DETAIL SCREEN STUB =====
-// TODO: Replace with real hotel detail (info + reviews + booking)
-@Composable
-fun HotelDetailScreen(
-    hotelId: String,
-    navController: NavHostController,
-    viewModel: TravelViewModel
-) {
-    LaunchedEffect(hotelId) {
-        viewModel.loadReviews(hotelId)
-    }
-    StubScreen(
-        title = "รายละเอียดโรงแรม",
-        emoji = "🏨",
-        subtitle = "hotel_id: $hotelId",
-        buttonText = "กลับ",
-        onButtonClick = { navController.popBackStack() }
-    )
-}
+// ===== HOTEL DETAIL =====
+// Real implementation is in DetailHotel.kt (HotelDetailScreen)
 
 // ============================================================
 //  REUSABLE STUB COMPOSABLE

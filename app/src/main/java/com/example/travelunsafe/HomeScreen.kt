@@ -34,7 +34,8 @@ val TextSecondary = Color(0xFF757575)
 fun HomeScreen(
     viewModel: TravelViewModel,
     prefs: SharedPreferencesManager,
-    onSearchClick: () -> Unit = {}
+    onSearchClick: () -> Unit = {},
+    onHotelsClick: () -> Unit = {}
 ) {
     val username = prefs.getUsername().ifBlank { "นักท่องเที่ยว" }
 
@@ -83,6 +84,24 @@ fun HomeScreen(
             }
             if (guides.isEmpty()) {
                 item { EmptyRowCard("ยังไม่มีคู่มือ") }
+            }
+        }
+
+        // ── Hotels shortcut ───────────────────────────────
+        Spacer(modifier = Modifier.height(8.dp))
+        SectionHeader(title = "โรงแรมและที่พัก", emoji = "🏨")
+        androidx.compose.foundation.layout.Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.End
+        ) {
+            androidx.compose.material3.TextButton(onClick = onHotelsClick) {
+                androidx.compose.material3.Text(
+                    text = "ดูโรงแรมทั้งหมด →",
+                    color = androidx.compose.ui.graphics.Color(0xFF42A5F5),
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.SemiBold
+                )
             }
         }
 

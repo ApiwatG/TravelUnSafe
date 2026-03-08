@@ -59,35 +59,41 @@ fun SearchScreen(
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
-    // Load provinces + places on enter
+    // Load provinces + places + guides on enter
     LaunchedEffect(Unit) {
         viewModel.loadProvinces()
         viewModel.loadPlaces()
+        viewModel.loadGuides()
     }
 
-    // Filter places by province name matching search query
-    val filteredPlaces = remember(searchQuery, viewModel.places) {
-        if (searchQuery.isBlank()) viewModel.places
-        else viewModel.places.filter { place ->
-            place.place_name.contains(searchQuery, ignoreCase = true) ||
-            place.location?.contains(searchQuery, ignoreCase = true) == true
+    // Filter places by search query
+    val filteredPlaces = if (searchQuery.isBlank()) viewModel.places
+    else viewModel.places.filter { place ->
+        place.place_name.contains(searchQuery, ignoreCase = true) ||
+                place.location?.contains(searchQuery, ignoreCase = true) == true
+    }
+
+    // Map real guides to GuideResult and filter by search query
+    val guideResults = viewModel.guides.map { g ->
+        GuideResult(
+            guide_id   = g.guide_id,
+            title      = g.guide_name,
+            author     = g.username ?: "ไม่ระบุชื่อ",
+            authorImage = g.image_profile,
+            imageUrl   = g.image_guide
+        )
+    }.let { mapped ->
+        if (searchQuery.isBlank()) mapped
+        else mapped.filter { guide ->
+            guide.title.contains(searchQuery, ignoreCase = true) ||
+                    guide.author.contains(searchQuery, ignoreCase = true)
         }
     }
 
-    // Dummy guides — replace with real API when guide endpoint is ready
-    val dummyGuides = listOf(
-        GuideResult("g1", "Japan: วัดเซนโซจิ", "master of gym", likes = "2k", views = "100k"),
-        GuideResult("g2", "Japan: ย่านชิบูย่า", "White Snake", likes = "7.8k", views = "600k"),
-        GuideResult("g3", "Japan: ฟูจิซัง", "TravelKing", likes = "5k", views = "300k"),
-        GuideResult("g4", "Japan: โอซาก้า", "JapanLover", likes = "3.2k", views = "200k"),
-        GuideResult("g5", "Japan: โตเกียว", "WandererTH", likes = "9k", views = "1M"),
-        GuideResult("g6", "Japan: นาโกย่า", "ExploreAsia", likes = "1.5k", views = "80k"),
-    )
+    val interleavedResults = buildInterleavedList(filteredPlaces, guideResults)
 
     // Interleave: 3 places → 3 guides → 3 places → ...
-    val interleavedResults = remember(filteredPlaces, dummyGuides) {
-        buildInterleavedList(filteredPlaces, dummyGuides)
-    }
+
 
     val categories = listOf(
         PlaceCategory("ร้านอาหาร", Icons.Filled.Restaurant),

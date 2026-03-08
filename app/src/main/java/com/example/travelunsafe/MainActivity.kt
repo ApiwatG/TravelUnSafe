@@ -41,6 +41,8 @@ fun TravelApp(
     prefs: SharedPreferencesManager,
     onNavigateToSearch: () -> Unit,
     onNavigateToFriends: () -> Unit,
+    onNavigateToHotels: () -> Unit,       // ← opens ListHotelScreen
+    onNavigateToCreatePlan: () -> Unit,   // ← opens CreatePlanScreen (FAB)
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -64,19 +66,20 @@ fun TravelApp(
             Box(modifier = Modifier.padding(innerPadding)) {
                 when (currentDestination) {
                     NavDestination.Home -> HomeScreen(
-                        viewModel = viewModel,
-                        prefs = prefs,
-                        onSearchClick = onNavigateToSearch
+                        viewModel      = viewModel,
+                        prefs          = prefs,
+                        onSearchClick  = onNavigateToSearch,
+                        onHotelsClick  = onNavigateToHotels
                     )
                     NavDestination.Messages  -> PlaceholderScreen("แชท")
                     NavDestination.Favorites -> FavoritePlaceScreen(
                         viewModel = viewModel,
-                        prefs = prefs
+                        prefs     = prefs
                     )
-                    NavDestination.Profile   -> ProfileScreen(
-                        viewModel = viewModel,
-                        prefs = prefs,
-                        onLogout = {
+                    NavDestination.Profile -> ProfileScreen(
+                        viewModel      = viewModel,
+                        prefs          = prefs,
+                        onLogout       = {
                             viewModel.logout()
                             prefs.logout()
                             onLogout()
@@ -88,16 +91,14 @@ fun TravelApp(
         }
 
         FabPopupMenu(
-            visible = showFabMenu,
+            visible   = showFabMenu,
             onDismiss = { showFabMenu = false },
-            onGuideClick = {
-                showFabMenu = false
-                // TODO: onNavigateToGuide()
-            },
+            onGuideClick = { showFabMenu = false },         // TODO: guide screen
             onTravelPlanClick = {
                 showFabMenu = false
-                // TODO: navigate to create guide page
-            }        )
+                onNavigateToCreatePlan()                    // ✅ wired!
+            }
+        )
     }
 }
 
