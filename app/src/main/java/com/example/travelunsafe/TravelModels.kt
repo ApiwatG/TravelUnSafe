@@ -45,6 +45,7 @@ data class RegisterResponse(
 // ===== TRIP =====
 data class Trip(
     val trip_id: String,
+    val province: String? = null,
     val trip_name: String,
     val start_date: String? = null,
     val end_date: String? = null,
@@ -54,6 +55,7 @@ data class Trip(
 
 data class CreateTripRequest(
     val trip_name: String,
+    val province: String? = null,
     val start_date: String? = null,
     val end_date: String? = null,
     val user_id: String

@@ -1,5 +1,6 @@
 package com.example.travelunsafe
 
+import retrofit2.Response
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
@@ -13,6 +14,9 @@ import retrofit2.http.*
 // =======================================================
 
 interface TripPlanApiService {
+
+    @GET("provinces")
+    suspend fun getAllProvinces(): List<Province>
 
     // ── USER ──────────────────────────────────────────────
     @POST("api/login")
@@ -89,6 +93,12 @@ interface TripPlanApiService {
 
     @POST("api/favorites")
     suspend fun addFavorite(@Body request: AddFavoriteRequest): AddFavoriteResponse
+
+    @DELETE("api/itinerarys/{id}")
+    suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
+
+    @DELETE("api/expenses/{id}")
+    suspend fun deleteExpense(@Path("id") expenseId: String): Response<ApiResponse>
 }
 
 object TripPlanClient {
