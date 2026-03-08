@@ -25,14 +25,22 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage // อย่าลืม Import Coil
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.CircularProgressIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelDetailScreen(
-    hotel: Hotel, // <--- 1. รับข้อมูล Hotel ที่ถูกคลิกส่งเข้ามา
+    hotel: Hotel,
+    tripId: String? = null,        // ✅ เพิ่ม — รับ tripId จาก NavGraph
+    userId: String = "U0001",// <--- 1. รับข้อมูล Hotel ที่ถูกคลิกส่งเข้ามา
+    viewModel: TravelViewModel,
     onBackClick: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var checkInInput by remember { mutableStateOf("") }   // ✅ เพิ่ม
+    var checkOutInput by remember { mutableStateOf("") }  // ✅ เพิ่ม
+    var isBooking by remember { mutableStateOf(false) }   // ✅ เพิ่ม
     val context = LocalContext.current
 
     // ตั้งค่า URL ของรูปภาพให้ตรงกับ Server ของเรา

@@ -137,6 +137,9 @@ interface TravelAPI {
         @Path("id") hotelId: String
     ): Response<Hotel>
 
+    @GET("api/hotels")
+    suspend fun getHotels(): List<Hotel>
+
     // ===================================
     //  PLACES
     // ===================================

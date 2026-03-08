@@ -71,14 +71,13 @@ data class Hotel(
     val hotel_id: String,
     val hotel_name: String,
     val address: String? = null,
-    val province: String? = null,
-    val province_name: String? = null,   // JOIN alias used by HotelCard
-    val price_per_night: Int = 0,
+    val province_name: String? = null,   // ✅ เก็บไว้ (JOIN alias)
+    val price_per_night: Double = 0.0,   // ✅ Int → Double
     val max_guest: Int = 1,
     val contact_phone: String? = null,
     val image_url: String? = null,
     val provinces_id: String? = null,
-    val hoteldetail: String? = null      // hotel description text
+    val hoteldetail: String? = null
 )
 
 // ===== PLACE =====

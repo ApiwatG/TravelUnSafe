@@ -21,8 +21,15 @@ import kotlinx.coroutines.launch
 fun ListHotelScreen(
     hotels: List<Hotel>,
     isLoading: Boolean = false,
-    onBack: () -> Unit = {},           // ✅ added — wired to navController.popBackStack()
-    onHotelClick: (Hotel) -> Unit
+
+    // ✅ เพิ่ม 2 ตัวแปรนี้เข้ามา เพื่อรับสถานะว่าหาโรงแรมเจอไหม
+    isFallbackMode: Boolean = false,
+    searchedProvince: String = "",
+    province: String = "",
+
+    onBack: () -> Unit = {},
+    onHotelClick: (Hotel) -> Unit,
+    onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?, minRating: Double?) -> Unit
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -33,7 +40,7 @@ fun ListHotelScreen(
             TopAppBar(
                 title = { },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {          // ✅ wired
+                    IconButton(onClick = onBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = Color.Black)
                     }
                 }
@@ -57,8 +64,25 @@ fun ListHotelScreen(
                     .padding(bottom = 24.dp)
             )
 
-            FilterButtonsRow(onFilterClick = { showFilterSheet = true })
+            FilterButtonsRow(
+                province = province,
+                onFilterClick = { showFilterSheet = true })
             Spacer(modifier = Modifier.height(24.dp))
+
+            // ✅ เพิ่มการแจ้งเตือนผู้ใช้ กรณีหาจังหวัดไม่เจอ แล้วระบบดึงข้อมูลทั้งหมดมาแสดงแทน
+            if (isFallbackMode && searchedProvince.isNotBlank() && !isLoading) {
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFFFEBEE)),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "ไม่พบโรงแรมใน '$searchedProvince' นี่คือโรงแรมทั้งหมดที่เราแนะนำ",
+                        color = Color(0xFFD32F2F),
+                        fontSize = 14.sp,
+                        modifier = Modifier.padding(12.dp)
+                    )
+                }
+            }
 
             if (isLoading) {
                 repeat(5) {
@@ -70,7 +94,9 @@ fun ListHotelScreen(
                     HotelCard(hotel = hotel, onClick = { onHotelClick(hotel) })
                     Spacer(modifier = Modifier.height(16.dp))
                 }
-                if (hotels.isEmpty()) {
+
+                // กรณีนี้อาจจะไม่เกิดขึ้นแล้ว เพราะถ้าว่างเราดึงข้อมูลทั้งหมดมาโชว์ แต่เผื่อระบบล่มหรือไม่มีข้อมูลใน DB เลย
+                if (hotels.isEmpty() && !isFallbackMode) {
                     Text("ไม่พบข้อมูลโรงแรม", modifier = Modifier.align(Alignment.CenterHorizontally))
                 }
             }
@@ -87,7 +113,8 @@ fun ListHotelScreen(
                         scope.launch { sheetState.hide() }.invokeOnCompletion {
                             if (!sheetState.isVisible) showFilterSheet = false
                         }
-                    }
+                    },
+                    onApplyFilter = onApplyFilter // ✅ ส่งต่อ
                 )
             }
         }

@@ -1,6 +1,7 @@
 package com.example.travelunsafe
 
 import android.widget.Toast
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,6 +19,7 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Hotel
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -35,7 +37,8 @@ import androidx.compose.ui.unit.sp
 fun PlanDetailScreen(
     viewModel: PlanDetailViewModel,
     tripId: String = "1",
-    onBack: () -> Unit
+    onBack: () -> Unit,
+    onNavigateToHotels: (province: String) -> Unit
 ) {
     val scrollState = rememberScrollState()
     val trip = viewModel.currentTrip
@@ -158,16 +161,33 @@ fun PlanDetailScreen(
         Spacer(modifier = Modifier.height(32.dp))
 
         // ส่วนของสถานที่ (Itinerary)
+        // ส่วนของสถานที่ (Itinerary)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "ไปไหนบ้าง", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Default.Add, contentDescription = "เพิ่มสถานที่", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showItineraryDialog = true } )
-        }
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(
+                    onClick = {
+                        val province = trip?.province ?: ""  // ✅ แก้ currentTrip → trip
+                        onNavigateToHotels(province)
+                    },
+                    shape = RoundedCornerShape(20.dp),
+                    border = BorderStroke(1.dp, Color(0xFF00B0FF)),
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.Hotel, contentDescription = null, tint = Color(0xFF00B0FF), modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("โรงแรม", color = Color(0xFF00B0FF), fontSize = 13.sp)
+                }
+                Icon(Icons.Default.Add, contentDescription = "เพิ่มสถานที่", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showItineraryDialog = true })
+            }  // ✅ ปิด Row ด้านใน
+        }  // ✅ ปิด Row ด้านนอก
+
         Spacer(modifier = Modifier.height(16.dp))
         viewModel.itineraryList.forEach { itinerary ->
             PlaceItemMockup(
                 name = itinerary.place_name ?: "ไม่มีชื่อสถานที่",
                 time = "เวลา : ${itinerary.start_time ?: "-"} ถึง ${itinerary.end_time ?: "-"} น.",
-                onDelete = { viewModel.deleteItinerary(tripId, itinerary.itinerary_id) } // 💡 เพิ่มปุ่มลบ
+                onDelete = { viewModel.deleteItinerary(tripId, itinerary.itinerary_id) }
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
