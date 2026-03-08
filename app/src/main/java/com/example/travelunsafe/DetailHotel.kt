@@ -36,7 +36,7 @@ fun HotelDetailScreen(
     val context = LocalContext.current
 
     // ตั้งค่า URL ของรูปภาพให้ตรงกับ Server ของเรา
-    val baseUrl = "http://192.168.1.11:3001/images/"
+    val baseUrl = "http://10.0.2.2:3000/images/"
 
     Scaffold(
         topBar = {
@@ -108,7 +108,7 @@ fun HotelDetailScreen(
 
                 // 4. ราคาต่อคืน
                 Text(
-                    text = "฿${hotel.price_per_night} / คืน",
+                    text = "฿${hotel.price_per_night.toInt()}/คืน",
                     fontSize = 18.sp,
                     color = Color(0xFF00B0FF),
                     fontWeight = FontWeight.Bold

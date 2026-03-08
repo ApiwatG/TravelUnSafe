@@ -98,12 +98,12 @@ fun HotelCard(
 ) {
     // URL พื้นฐานของรูปภาพ (เปลี่ยน IP เป็นเครื่อง Server ของคุณ)
     // ถ้าใช้ Emulator Android ให้ใช้ 10.0.2.2 แทน localhost
-    val baseUrl = "http://192.168.1.11:3001/images/"
+    val baseUrl = "http://10.0.2.2:3000/images/"
 
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .height(120.dp)
+            .height(130.dp)
             .clickable { onClick() }, // ย้าย Clickable มาไว้ที่ Card
         shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -149,7 +149,7 @@ fun HotelCard(
                     Text(text = "⭐⭐⭐", fontSize = 12.sp)
                 }
                 Text(
-                    text = "฿${hotel.price_per_night}/คืน", // ใส่ราคาจริง
+                    text = "฿${hotel.price_per_night.toInt()}/คืน", // ใส่ราคาจริง
                     fontWeight = FontWeight.Bold,
                     fontSize = 16.sp,
                     color = Color(0xFF00B0FF),

@@ -93,7 +93,7 @@ interface TripPlanApiService {
 
 object TripPlanClient {
     // Emulator → 10.0.2.2 | Real device → your LAN IP e.g. 192.168.1.x
-    private const val BASE_URL = "http://192.168.1.11:3000/"
+    private const val BASE_URL = "http://10.0.2.2:3000/"
 
     val apiService: TripPlanApiService by lazy {
         Retrofit.Builder()

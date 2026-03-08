@@ -90,15 +90,28 @@ fun NavGraph(navController: NavHostController) {
 
         // ── HOTEL LIST ────────────────────────────────────
         composable(Screen.HotelList.route) {
-            val hotels    by hotelViewModel.hotels.collectAsState()
-            val isLoading by hotelViewModel.isLoading.collectAsState()
+            val hotels       by hotelViewModel.hotels.collectAsState()
+            val isLoading    by hotelViewModel.isLoading.collectAsState()
+            val isFallback   by hotelViewModel.isFallbackMode.collectAsState()
+            val searchedProv by hotelViewModel.searchedProvince.collectAsState()
+
+            // ✅ เพิ่มตรงนี้ — โหลดโรงแรมทั้งหมดทันทีที่เข้าหน้า
+            LaunchedEffect(Unit) {
+                hotelViewModel.searchHotels("")
+            }
+
             ListHotelScreen(
-                hotels    = hotels,
-                isLoading = isLoading,
-                onBack    = { navController.popBackStack() },
-                onHotelClick = { hotel ->
+                hotels           = hotels,
+                isLoading        = isLoading,
+                isFallbackMode   = isFallback,
+                searchedProvince = searchedProv,
+                onBack           = { navController.popBackStack() },
+                onHotelClick     = { hotel ->
                     selectedHotel = hotel
                     navController.navigate(Screen.HotelDetail.route)
+                },
+                onApplyFilter = { minPrice, maxPrice, maxGuest -> // ✅ เพิ่ม
+                    hotelViewModel.filterHotels(minPrice, maxPrice, maxGuest)
                 }
             )
         }
@@ -113,6 +126,7 @@ fun NavGraph(navController: NavHostController) {
         // ── CREATE PLAN ───────────────────────────────────
         composable(Screen.CreatePlan.route) {
             CreatePlanScreen(
+                navController   = navController,
                 viewModel       = tripViewModel,
                 onStartPlanning = { newTripId ->
                     navController.navigate(Screen.PlanDetail.createRoute(newTripId))
@@ -128,5 +142,6 @@ fun NavGraph(navController: NavHostController) {
             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
             PlanDetailScreen(viewModel = planDetailViewModel, tripId = tripId, onBack = { navController.popBackStack() })
         }
+
     }
 }

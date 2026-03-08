@@ -23,7 +23,8 @@ import androidx.compose.ui.unit.sp
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FilterSheetContent(onCloseClick: () -> Unit) {
+fun FilterSheetContent(onCloseClick: () -> Unit,
+                       onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?) -> Unit) {
     // State สำหรับเก็บค่าต่างๆ
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
@@ -140,9 +141,21 @@ fun FilterSheetContent(onCloseClick: () -> Unit) {
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ปุ่มยืนยัน (กดแล้วปิดหน้าต่าง)
+        // ปุ่มยืนยัน — แก้ตรงนี้
         Button(
-            onClick = onCloseClick,
+            onClick = {
+                onApplyFilter(
+                    minPrice.toDoubleOrNull(),
+                    maxPrice.toDoubleOrNull(),
+                    when (selectedBeds) {
+                        "2+" -> 2
+                        "3+" -> 3
+                        "4+" -> 4
+                        else -> null
+                    }
+                )
+                onCloseClick()
+            },
             modifier = Modifier.fillMaxWidth().height(50.dp),
             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00B0FF))
         ) {
