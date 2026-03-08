@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -125,8 +127,17 @@ fun ProfileScreen(
                             .background(LightGrayProfile),
                         contentAlignment = Alignment.Center
                     ) {
-                        // TODO: AsyncImage with profile?.user?.image_profile
-                        Text(text = "👤", fontSize = 32.sp)
+                        val imageUrl = profile?.user?.image_profile
+                        if (!imageUrl.isNullOrBlank()) {
+                            AsyncImage(
+                                model = "http://192.168.1.11:3000/uploads/$imageUrl",
+                                contentDescription = "Profile",
+                                modifier = Modifier.fillMaxSize().clip(CircleShape),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Text(text = "👤", fontSize = 32.sp)
+                        }
                     }
                 }
                 // ➕ Upload button (bottom-right of avatar)
