@@ -27,6 +27,11 @@ sealed class Screen(val route: String) {
     object PlanDetail  : Screen("plan_detail/{tripId}") {
         fun createRoute(tripId: String) = "plan_detail/$tripId"
     }
+    object Profile : Screen("profile/{user_id}") {
+        fun createRoute(userId: String) = "profile/$userId"
+    }
+    object Admin : Screen("admin")
+
 }
 
 @Composable
@@ -40,7 +45,11 @@ fun NavGraph(navController: NavHostController) {
     val context = LocalContext.current
     val prefs   = remember { SharedPreferencesManager(context) }
 
-    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Login.route
+    val startDestination = when {
+        !prefs.isLoggedIn()          -> Screen.Login.route
+        prefs.getRole() == "admin"   -> Screen.Admin.route
+        else                         -> Screen.Main.route
+    }
 
     // Shared hotel state — HotelDetailScreen takes Hotel object not an id
     var selectedHotel by remember { mutableStateOf<Hotel?>(null) }
@@ -55,6 +64,30 @@ fun NavGraph(navController: NavHostController) {
             RegisterScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
         }
 
+        composable(Screen.Admin.route) {
+            val role = prefs.getRole()
+
+            if (role == "admin") {
+                val adminViewModel: AdminViewModel = viewModel()
+
+                AdminScreen(
+                    viewModel = adminViewModel,
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        prefs.clear() // ลบข้อมูลการล็อกอิน
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
         // ── MAIN SHELL ────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
@@ -109,6 +142,7 @@ fun NavGraph(navController: NavHostController) {
                 HotelDetailScreen(hotel = hotel, onBackClick = { navController.popBackStack() })
             }
         }
+
 
         // ── CREATE PLAN ───────────────────────────────────
         composable(Screen.CreatePlan.route) {

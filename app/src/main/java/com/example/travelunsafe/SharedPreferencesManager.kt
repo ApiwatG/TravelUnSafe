@@ -49,6 +49,9 @@ class SharedPreferencesManager(context: Context) {
     fun getEmail(): String =
         preferences.getString(KEY_EMAIL, "") ?: ""
 
+    fun clear() {
+        preferences.edit().clear().apply()
+    }
     fun getRole(): String =
         preferences.getString(KEY_ROLE, "") ?: ""
 
