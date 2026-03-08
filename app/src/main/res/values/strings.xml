@@ -1,3 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">TravelUnSafe</string>
+    <string name="app_name">TravelUnSave</string>
+    
+    <!-- Bottom Navigation -->
+    <string name="home">หน้าหลัก</string>
+    <string name="messages">แชท</string>
+    <string name="favorites">ถูกใจ</string>
+    <string name="profile">โปรไฟล์</string>
+    
+    <!-- Popup Menu -->
+    <string name="guide">Guide</string>
+    <string name="travel_plan">Travel Plan</string>
+    
+    <!-- Content Descriptions -->
+    <string name="add_content">Add</string>
 </resources>
