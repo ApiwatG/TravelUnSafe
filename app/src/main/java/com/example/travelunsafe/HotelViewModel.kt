@@ -21,6 +21,9 @@ class HotelViewModel : ViewModel() {
     private val _searchedProvince = MutableStateFlow("")
     val searchedProvince: StateFlow<String> = _searchedProvince.asStateFlow()
 
+    private val _initialProvince = MutableStateFlow("")
+    val initialProvince: StateFlow<String> = _initialProvince.asStateFlow()
+
     fun searchHotels(query: String) {
         viewModelScope.launch {
             try {
@@ -58,16 +61,27 @@ class HotelViewModel : ViewModel() {
         }
     }
 
-    fun filterHotels(minPrice: Double?, maxPrice: Double?, maxGuest: Int?) {
+    fun filterHotels(minPrice: Double?, maxPrice: Double?, maxGuest: Int?, minRating: Double?) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
                 val allHotels = TravelClient.travelAPI.getHotels()
+
+                // ✅ ถ้ามี minRating ให้ดึง reviews มาคำนวณ average rating ต่อโรงแรม
+                val ratingMap: Map<String, Double> = if (minRating != null) {
+                    val allReviews = TravelClient.travelAPI.getReviews()
+                    allReviews
+                        .groupBy { it.hotel_id }
+                        .mapValues { (_, reviews) -> reviews.map { it.rating }.average() }
+                } else emptyMap()
+
                 val filtered = allHotels.filter { hotel ->
                     val priceOk = (minPrice == null || hotel.price_per_night >= minPrice) &&
                             (maxPrice == null || hotel.price_per_night <= maxPrice)
                     val guestOk = maxGuest == null || hotel.max_guest >= maxGuest
-                    priceOk && guestOk
+                    val ratingOk = minRating == null ||
+                            (ratingMap[hotel.hotel_id] ?: 0.0) >= minRating
+                    priceOk && guestOk && ratingOk
                 }
                 _hotels.value = filtered
                 _isFallbackMode.value = filtered.isEmpty()
@@ -78,4 +92,9 @@ class HotelViewModel : ViewModel() {
             }
         }
     }
+    fun setInitialProvince(province: String) {
+        _initialProvince.value = province
+        searchHotels(province) // โหลดโรงแรมในจังหวัดนั้นทันที
+    }
+
 }

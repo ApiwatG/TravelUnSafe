@@ -22,6 +22,7 @@ import coil.compose.AsyncImage
 
 @Composable
 fun FilterButtonsRow(
+    province: String = "",
     onFilterClick: () -> Unit // รับฟังก์ชันคลิกปุ่มคัดกรอง
 ) {
     val buttonColor = Color(0xFF00B0FF)
@@ -36,7 +37,10 @@ fun FilterButtonsRow(
             shape = RoundedCornerShape(12.dp),
             modifier = Modifier.weight(1f).height(50.dp)
         ) {
-            Text("ที่ไหน: โอซาก้า", color = Color.Gray)
+            Text(
+                text = if (province.isBlank()) "ที่ไหน: ทั้งหมด" else "ที่ไหน: $province",  // ✅
+                color = Color.Gray
+            )
         }
 
         // ปุ่มขวา (เชื่อมต่อ onFilterClick)

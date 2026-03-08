@@ -24,11 +24,11 @@ import androidx.compose.ui.unit.sp
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FilterSheetContent(onCloseClick: () -> Unit,
-                       onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?) -> Unit) {
+                       onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?, minRating: Double?) -> Unit) {
     // State สำหรับเก็บค่าต่างๆ
     var minPrice by remember { mutableStateOf("") }
     var maxPrice by remember { mutableStateOf("") }
-    val selectedStars = remember { mutableStateListOf<Int>() }
+    var selectedMinStar by remember { mutableStateOf<Int?>(null) }  // ✅ เปลี่ยนจาก List → single value
     var selectedBeds by remember { mutableStateOf("เท่าไหร่ก็ได้") }
     val bedOptions = listOf("เท่าไหร่ก็ได้", "2+", "3+", "4+")
 
@@ -76,20 +76,22 @@ fun FilterSheetContent(onCloseClick: () -> Unit,
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // 2. ระดับดาว
-        Text("ระดับดาว", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
+        // ส่วนดาว — เปลี่ยนเป็นเลือกขั้นต่ำ
+        Text("คะแนนรีวิวขั้นต่ำ", fontWeight = FontWeight.Bold, modifier = Modifier.padding(bottom = 8.dp))
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             repeat(5) { index ->
                 val star = index + 1
-                val isSelected = selectedStars.contains(star)
+                val isSelected = selectedMinStar == star
                 FilterChip(
                     selected = isSelected,
-                    onClick = { if(isSelected) selectedStars.remove(star) else selectedStars.add(star) },
-                    label = { Text("★ $star") },
+                    onClick = {
+                        // ✅ กดซ้ำ = ยกเลิก, กดใหม่ = เลือก
+                        selectedMinStar = if (isSelected) null else star
+                    },
+                    label = { Text("★ $star+") },
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = Color(0xFFE3F2FD),
-                        selectedLabelColor = Color(0xFF00B0FF),
-                        selectedLeadingIconColor = Color(0xFF00B0FF)
+                        selectedLabelColor = Color(0xFF00B0FF)
                     )
                 )
             }
@@ -152,7 +154,8 @@ fun FilterSheetContent(onCloseClick: () -> Unit,
                         "3+" -> 3
                         "4+" -> 4
                         else -> null
-                    }
+                    },
+                    selectedMinStar?.toDouble()  // ✅ ส่ง minRating
                 )
                 onCloseClick()
             },

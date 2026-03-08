@@ -173,14 +173,7 @@ fun CreatePlanScreen(
                     onSuccess = { newTripId ->
                         isLoading = false
                         Toast.makeText(context, "บันทึกทริปสำเร็จ!", Toast.LENGTH_SHORT).show()
-
-                        // ---------------------------------------------------------
-                        // แก้ไข: สั่งให้ไปหน้า SearchHotelScreen หลังจากบันทึกสำเร็จ
-                        // ---------------------------------------------------------
-                        navController.navigate("search")
-
-                        // หมายเหตุ: ถ้าในอนาคตอยากส่ง ID ทริปไปหน้าค้นหาด้วย เผื่อเอาไปผูกกับโรงแรม
-                        // สามารถแก้เป็น navController.navigate("search/$newTripId") ได้ครับ
+                        onStartPlanning(newTripId)
                     },
                     onError = { errorMessage ->
                         isLoading = false
@@ -195,15 +188,9 @@ fun CreatePlanScreen(
             enabled = destination.isNotBlank() && provinces.contains(selectedProvince) && startDate.isNotBlank() && !isLoading
         ) {
             if (isLoading) {
-                // ตอนกำลังโหลด โชว์วงกลมหมุนๆ
                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp))
             } else {
-                Text(
-                    text = "เริ่มต้นการวางแผน",
-                    fontSize = 16.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
-                )
+                Text(text = "เริ่มต้นการวางแผน", fontSize = 16.sp, fontWeight = FontWeight.Bold, color = Color.White)
             }
         }
         Spacer(modifier = Modifier.height(60.dp))

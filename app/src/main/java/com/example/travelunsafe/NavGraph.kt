@@ -27,6 +27,12 @@ sealed class Screen(val route: String) {
     object PlanDetail  : Screen("plan_detail/{tripId}") {
         fun createRoute(tripId: String) = "plan_detail/$tripId"
     }
+    object HotelListFromPlan : Screen("hotel_list_from_plan/{province}/{tripId}") {
+        fun createRoute(province: String, tripId: String) = "hotel_list_from_plan/$province/$tripId"
+    }
+
+
+
 }
 
 @Composable
@@ -44,6 +50,7 @@ fun NavGraph(navController: NavHostController) {
 
     // Shared hotel state — HotelDetailScreen takes Hotel object not an id
     var selectedHotel by remember { mutableStateOf<Hotel?>(null) }
+    var selectedTripId by remember { mutableStateOf<String?>(null) }
 
     NavHost(navController = navController, startDestination = startDestination) {
 
@@ -88,14 +95,13 @@ fun NavGraph(navController: NavHostController) {
             TripDetailScreen(tripId = tripId, navController = navController, viewModel = travelViewModel)
         }
 
-        // ── HOTEL LIST ────────────────────────────────────
+        // ── HOTEL LIST (จากหน้าหลัก) ──────────────────────────────
         composable(Screen.HotelList.route) {
             val hotels       by hotelViewModel.hotels.collectAsState()
             val isLoading    by hotelViewModel.isLoading.collectAsState()
             val isFallback   by hotelViewModel.isFallbackMode.collectAsState()
             val searchedProv by hotelViewModel.searchedProvince.collectAsState()
 
-            // ✅ เพิ่มตรงนี้ — โหลดโรงแรมทั้งหมดทันทีที่เข้าหน้า
             LaunchedEffect(Unit) {
                 hotelViewModel.searchHotels("")
             }
@@ -105,28 +111,37 @@ fun NavGraph(navController: NavHostController) {
                 isLoading        = isLoading,
                 isFallbackMode   = isFallback,
                 searchedProvince = searchedProv,
+                province         = "",           // ✅ เพิ่ม — ไม่มีจังหวัด แสดง "ทั้งหมด"
                 onBack           = { navController.popBackStack() },
                 onHotelClick     = { hotel ->
                     selectedHotel = hotel
+                    selectedTripId = null   // ✅ มาจากหน้าหลัก ไม่มี tripId
                     navController.navigate(Screen.HotelDetail.route)
                 },
-                onApplyFilter = { minPrice, maxPrice, maxGuest -> // ✅ เพิ่ม
-                    hotelViewModel.filterHotels(minPrice, maxPrice, maxGuest)
+                onApplyFilter = { minPrice, maxPrice, maxGuest, minRating ->  // ✅ เพิ่ม minRating
+                    hotelViewModel.filterHotels(minPrice, maxPrice, maxGuest, minRating)
                 }
             )
         }
 
         // ── HOTEL DETAIL ──────────────────────────────────
         composable(Screen.HotelDetail.route) {
+            val prefs = remember { SharedPreferencesManager(context) }
+
             selectedHotel?.let { hotel ->
-                HotelDetailScreen(hotel = hotel, onBackClick = { navController.popBackStack() })
+                HotelDetailScreen(
+                    hotel      = hotel,
+                    tripId     = null,              // ✅ ถ้ามาจากหน้าหลัก ไม่มี tripId
+                    userId     = prefs.getUserId(), // ✅ ดึง userId จาก SharedPreferences
+                    viewModel  = travelViewModel,
+                    onBackClick = { navController.popBackStack() }
+                )
             }
         }
 
         // ── CREATE PLAN ───────────────────────────────────
         composable(Screen.CreatePlan.route) {
             CreatePlanScreen(
-                navController   = navController,
                 viewModel       = tripViewModel,
                 onStartPlanning = { newTripId ->
                     navController.navigate(Screen.PlanDetail.createRoute(newTripId))
@@ -140,7 +155,51 @@ fun NavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
         ) { backStackEntry ->
             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
-            PlanDetailScreen(viewModel = planDetailViewModel, tripId = tripId, onBack = { navController.popBackStack() })
+            PlanDetailScreen(
+                viewModel          = planDetailViewModel,
+                tripId             = tripId,
+                onBack             = { navController.popBackStack() },
+                onNavigateToHotels = { province ->
+                    // ✅ ส่งทั้ง province และ tripId
+                    navController.navigate(Screen.HotelListFromPlan.createRoute(province, tripId))
+                }
+            )
+        }
+
+        // ── HOTEL LIST (จากหน้า Plan) ──────────────────────────────
+        composable(
+            route = "hotel_list_from_plan/{province}/{tripId}",  // ✅ รับ tripId ด้วย
+            arguments = listOf(
+                navArgument("province") { type = NavType.StringType },
+                navArgument("tripId")   { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+            val province = backStackEntry.arguments?.getString("province") ?: ""
+            val tripId   = backStackEntry.arguments?.getString("tripId")   ?: ""
+
+            val hotels       by hotelViewModel.hotels.collectAsState()
+            val isLoading    by hotelViewModel.isLoading.collectAsState()
+            val isFallback   by hotelViewModel.isFallbackMode.collectAsState()
+            val searchedProv by hotelViewModel.searchedProvince.collectAsState()
+
+            LaunchedEffect(province) { hotelViewModel.setInitialProvince(province) }
+
+            ListHotelScreen(
+                hotels           = hotels,
+                isLoading        = isLoading,
+                isFallbackMode   = isFallback,
+                searchedProvince = searchedProv,
+                province         = province,
+                onBack           = { navController.popBackStack() },
+                onHotelClick     = { hotel ->
+                    selectedHotel  = hotel
+                    selectedTripId = tripId  // ✅ เก็บ tripId ไว้ใช้ใน HotelDetail
+                    navController.navigate(Screen.HotelDetail.route)
+                },
+                onApplyFilter = { minPrice, maxPrice, maxGuest, minRating ->
+                    hotelViewModel.filterHotels(minPrice, maxPrice, maxGuest, minRating)
+                }
+            )
         }
 
     }

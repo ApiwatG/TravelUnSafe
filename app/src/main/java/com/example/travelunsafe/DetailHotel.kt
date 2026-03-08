@@ -25,17 +25,23 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage // อย่าลืม Import Coil
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.CircularProgressIndicator
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelDetailScreen(
-    hotel: Hotel, // <--- 1. รับข้อมูล Hotel ที่ถูกคลิกส่งเข้ามา
+    hotel: Hotel,
+    tripId: String? = null,        // ✅ เพิ่ม — รับ tripId จาก NavGraph
+    userId: String = "U0001",// <--- 1. รับข้อมูล Hotel ที่ถูกคลิกส่งเข้ามา
+    viewModel: TravelViewModel,
     onBackClick: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
+    var checkInInput by remember { mutableStateOf("") }   // ✅ เพิ่ม
+    var checkOutInput by remember { mutableStateOf("") }  // ✅ เพิ่ม
+    var isBooking by remember { mutableStateOf(false) }   // ✅ เพิ่ม
     val context = LocalContext.current
-
-    // ตั้งค่า URL ของรูปภาพให้ตรงกับ Server ของเรา
     val baseUrl = "http://10.0.2.2:3000/images/"
 
     Scaffold(
@@ -165,7 +171,8 @@ fun HotelDetailScreen(
 
                 // 👇 7. เปลี่ยนมาใช้ข้อมูลจริงจาก Database
                 Text(
-                    text = hotel.hoteldetail ?: "ไม่มีข้อมูลรายละเอียดสำหรับโรงแรมนี้", // ถ้าค่าเป็น null ให้โชว์ข้อความเผื่อไว้
+                    text = hotel.hoteldetail
+                        ?: "ไม่มีข้อมูลรายละเอียดสำหรับโรงแรมนี้", // ถ้าค่าเป็น null ให้โชว์ข้อความเผื่อไว้
                     fontSize = 14.sp,
                     color = Color.Black,
                     lineHeight = 22.sp
@@ -175,6 +182,9 @@ fun HotelDetailScreen(
 
         // ส่วนของ Dialog ยืนยันการเพิ่ม (ใช้แบบเดิมได้เลย)
         if (showDialog) {
+            var checkInInput by remember { mutableStateOf("") }
+            var checkOutInput by remember { mutableStateOf("") }
+
             Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -186,11 +196,33 @@ fun HotelDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "ยืนยันการเพิ่มหรือไม่?",
+                            text = "จองโรงแรม",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 32.dp)
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(bottom = 16.dp)
                         )
+
+                        // ✅ ช่อง Check-in
+                        OutlinedTextField(
+                            value = checkInInput,
+                            onValueChange = { checkInInput = it },
+                            label = { Text("วันเช็คอิน (YYYY-MM-DD)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ✅ ช่อง Check-out
+                        OutlinedTextField(
+                            value = checkOutInput,
+                            onValueChange = { checkOutInput = it },
+                            label = { Text("วันเช็คเอาท์ (YYYY-MM-DD)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true,
+                            shape = RoundedCornerShape(12.dp)
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -198,18 +230,52 @@ fun HotelDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    showDialog = false
-                                    Toast.makeText(context, "เพิ่มสำเร็จเรียบร้อย!", Toast.LENGTH_SHORT).show()
+                                    if (checkInInput.isBlank() || checkOutInput.isBlank()) {
+                                        Toast.makeText(
+                                            context,
+                                            "กรุณากรอกวันเช็คอินและเช็คเอาท์",
+                                            Toast.LENGTH_SHORT
+                                        ).show()
+                                        return@Button
+                                    }
+                                    viewModel.createBooking(
+                                        context = context,
+                                        hotelId = hotel.hotel_id,
+                                        userId = userId,
+                                        tripId = tripId,
+                                        checkIn = checkInInput,
+                                        checkOut = checkOutInput,
+                                        totalPrice = hotel.price_per_night.toInt(),
+                                        onSuccess = {
+                                            showDialog = false
+                                        }
+                                    )
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFAB40)),
+                                enabled = !viewModel.isLoading,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xFFFFAB40
+                                    )
+                                ),
                                 modifier = Modifier.width(90.dp)
                             ) {
-                                Text("ยืนยัน", color = Color.White)
+                                if (viewModel.isLoading) {
+                                    CircularProgressIndicator(
+                                        color = Color.White,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                } else {
+                                    Text("ยืนยัน", color = Color.White)
+                                }
                             }
 
                             Button(
                                 onClick = { showDialog = false },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9E9E9E)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = Color(
+                                        0xFF9E9E9E
+                                    )
+                                ),
                                 modifier = Modifier.width(90.dp)
                             ) {
                                 Text("ยกเลิก", color = Color.White)
@@ -220,4 +286,4 @@ fun HotelDetailScreen(
             }
         }
     }
-}
+    }

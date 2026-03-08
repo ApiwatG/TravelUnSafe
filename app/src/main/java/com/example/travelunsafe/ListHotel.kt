@@ -25,10 +25,11 @@ fun ListHotelScreen(
     // ✅ เพิ่ม 2 ตัวแปรนี้เข้ามา เพื่อรับสถานะว่าหาโรงแรมเจอไหม
     isFallbackMode: Boolean = false,
     searchedProvince: String = "",
+    province: String = "",
 
     onBack: () -> Unit = {},
     onHotelClick: (Hotel) -> Unit,
-    onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?) -> Unit
+    onApplyFilter: (minPrice: Double?, maxPrice: Double?, maxGuest: Int?, minRating: Double?) -> Unit
 ) {
     var showFilterSheet by remember { mutableStateOf(false) }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -63,7 +64,9 @@ fun ListHotelScreen(
                     .padding(bottom = 24.dp)
             )
 
-            FilterButtonsRow(onFilterClick = { showFilterSheet = true })
+            FilterButtonsRow(
+                province = province,
+                onFilterClick = { showFilterSheet = true })
             Spacer(modifier = Modifier.height(24.dp))
 
             // ✅ เพิ่มการแจ้งเตือนผู้ใช้ กรณีหาจังหวัดไม่เจอ แล้วระบบดึงข้อมูลทั้งหมดมาแสดงแทน
