@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
@@ -54,7 +55,6 @@ fun PlanDetailScreen(
     var newTripNameInput by remember { mutableStateOf("") }
     var showAddFriendDialog by remember { mutableStateOf(false) }
 
-    // 💡 ตัวแปรเก็บข้อมูลเพื่อนที่กำลังจะถูกเตะออก
     var memberToRemove by remember { mutableStateOf<Friend?>(null) }
 
     LaunchedEffect(tripId) {
@@ -96,7 +96,7 @@ fun PlanDetailScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // แสดงรายชื่อเพื่อนที่ *อยู่ในทริปนี้แล้ว*
+        // แสดงรายชื่อเพื่อนที่อยู่ในทริป
         LazyRow(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
             items(viewModel.tripMembers) { member ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -105,7 +105,6 @@ fun PlanDetailScreen(
                             .size(60.dp)
                             .clip(CircleShape)
                             .background(Color.LightGray)
-                            // 💡 ถ้าไม่ใช่เจ้าของทริป พอกดที่รูปจะขึ้นเมนูให้เตะออกได้
                             .clickable {
                                 if (member.role != "owner") {
                                     memberToRemove = member
@@ -119,7 +118,6 @@ fun PlanDetailScreen(
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(text = member.username, fontWeight = FontWeight.Bold)
 
-                    // บอกให้รู้ว่าใครคือหัวหน้าทริป
                     if (member.role == "owner") {
                         Text(text = "เจ้าของ", fontSize = 10.sp, color = Color.Gray)
                     }
@@ -143,7 +141,6 @@ fun PlanDetailScreen(
 
         Spacer(modifier = Modifier.height(24.dp))
 
-        // ... โค้ดส่วนวันที่, Itinerary และ Expense แบบเดิม ...
         OutlinedTextField(
             value = if (trip != null) {
                 val start = trip.start_date?.substringBefore("T") ?: ""
@@ -160,25 +157,35 @@ fun PlanDetailScreen(
         )
         Spacer(modifier = Modifier.height(32.dp))
 
+        // ส่วนของสถานที่ (Itinerary)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "ไปไหนบ้าง", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Icon(Icons.Default.Add, contentDescription = "เพิ่มสถานที่", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showItineraryDialog = true } )
         }
         Spacer(modifier = Modifier.height(16.dp))
         viewModel.itineraryList.forEach { itinerary ->
-            PlaceItemMockup(name = itinerary.place_name ?: "ไม่มีชื่อสถานที่", time = "เวลา : ${itinerary.start_time ?: "-"} ถึง ${itinerary.end_time ?: "-"} น.")
+            PlaceItemMockup(
+                name = itinerary.place_name ?: "ไม่มีชื่อสถานที่",
+                time = "เวลา : ${itinerary.start_time ?: "-"} ถึง ${itinerary.end_time ?: "-"} น.",
+                onDelete = { viewModel.deleteItinerary(tripId, itinerary.itinerary_id) } // 💡 เพิ่มปุ่มลบ
+            )
             Spacer(modifier = Modifier.height(16.dp))
         }
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // ส่วนของค่าใช้จ่าย (Expense)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "ค่าใช้จ่าย", fontSize = 22.sp, fontWeight = FontWeight.Bold)
             Icon(Icons.Default.Add, contentDescription = "เพิ่มค่าใช้จ่าย", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showExpenseDialog = true })
         }
         Spacer(modifier = Modifier.height(16.dp))
         viewModel.expenseList.forEach { expense ->
-            ExpenseRow(title = expense.expense_name, amount = "${expense.amount} บาท")
+            ExpenseRow(
+                title = expense.expense_name,
+                amount = "${expense.amount} บาท",
+                onDelete = { viewModel.deleteExpense(tripId, expense.expense_id) } // 💡 เพิ่มปุ่มลบ
+            )
         }
 
         Spacer(modifier = Modifier.height(16.dp))
@@ -189,7 +196,7 @@ fun PlanDetailScreen(
         Spacer(modifier = Modifier.height(100.dp))
     }
 
-    // 💡 กล่อง Popup ยืนยันการลบเพื่อน
+    // กล่อง Popup ยืนยันการลบเพื่อน
     if (memberToRemove != null) {
         AlertDialog(
             onDismissRequest = { memberToRemove = null },
@@ -217,11 +224,10 @@ fun PlanDetailScreen(
         )
     }
 
-    // 💡 กล่อง Popup สำหรับค้นหาและชวนเพื่อนเข้าทริป (แอดเข้าเลย)
+    // กล่อง Popup เชิญเพื่อน
     if (showAddFriendDialog) {
         var searchQuery by remember { mutableStateOf("") }
 
-        // กรองเพื่อนที่ยังไม่อยู่ในทริป และตรงกับคำค้นหา
         val filteredFriends = viewModel.friendsList.filter { f ->
             viewModel.tripMembers.none { it.user_id == f.user_id } && f.username.contains(searchQuery, ignoreCase = true)
         }
@@ -260,7 +266,6 @@ fun PlanDetailScreen(
                                     Spacer(modifier = Modifier.width(12.dp))
                                     Text(text = friend.username, modifier = Modifier.weight(1f))
 
-                                    // 💡 พอกดปุ่มเชิญ จะแอดเพื่อนเข้าทริปทันที
                                     TextButton(onClick = {
                                         viewModel.addMemberToTrip(
                                             tripId = tripId,
@@ -279,10 +284,7 @@ fun PlanDetailScreen(
         )
     }
 
-    // ... ส่วนของ showItineraryDialog, showEditNameDialog และ showExpenseDialog ลอกของเดิมมาใส่ได้เลยครับ
-    // ==========================================
     // กล่อง Popup สำหรับแก้ไขชื่อทริป
-    // ==========================================
     if (showEditNameDialog) {
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
@@ -317,10 +319,14 @@ fun PlanDetailScreen(
         )
     }
 
-    // ==========================================
-    // กล่อง Popup สำหรับเพิ่มสถานที่ (Itinerary)
-    // ==========================================
+    // กล่อง Popup สำหรับเพิ่มสถานที่ (กรองเฉพาะจังหวัดเดียวกัน)
     if (showItineraryDialog) {
+
+        val filteredPlaces = viewModel.availablePlaces.filter { place ->
+            val tripProvince = trip?.province ?: ""
+            place.province == tripProvince
+        }
+
         AlertDialog(
             onDismissRequest = { showItineraryDialog = false },
             title = { Text(text = "เพิ่มสถานที่", fontWeight = FontWeight.Bold) },
@@ -331,10 +337,10 @@ fun PlanDetailScreen(
                             Text(selectedPlace?.place_name ?: "กดเพื่อเลือกสถานที่...", color = Color.Black)
                         }
                         DropdownMenu(expanded = expandedPlaceMenu, onDismissRequest = { expandedPlaceMenu = false }) {
-                            if (viewModel.availablePlaces.isEmpty()) {
-                                DropdownMenuItem(text = { Text("ไม่มีข้อมูลสถานที่ในระบบ") }, onClick = { expandedPlaceMenu = false })
+                            if (filteredPlaces.isEmpty()) {
+                                DropdownMenuItem(text = { Text("ไม่มีข้อมูลสถานที่ในจังหวัดนี้") }, onClick = { expandedPlaceMenu = false })
                             } else {
-                                viewModel.availablePlaces.forEach { place ->
+                                filteredPlaces.forEach { place ->
                                     DropdownMenuItem(text = { Text(place.place_name) }, onClick = { selectedPlace = place; expandedPlaceMenu = false })
                                 }
                             }
@@ -363,9 +369,7 @@ fun PlanDetailScreen(
         )
     }
 
-    // ==========================================
-    // กล่อง Popup สำหรับเพิ่มค่าใช้จ่าย (Expense)
-    // ==========================================
+    // กล่อง Popup สำหรับเพิ่มค่าใช้จ่าย
     if (showExpenseDialog) {
         AlertDialog(
             onDismissRequest = { showExpenseDialog = false },
@@ -396,28 +400,35 @@ fun PlanDetailScreen(
     }
 }
 
-// คอมโพเนนต์ย่อยสำหรับแสดงสถานที่
+// 💡 อัปเดตคอมโพเนนต์ให้รับ onDelete
 @Composable
-fun PlaceItemMockup(name: String, time: String) {
+fun PlaceItemMockup(name: String, time: String, onDelete: () -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.size(80.dp).clip(RoundedCornerShape(8.dp)).background(Color.LightGray))
         Spacer(modifier = Modifier.width(16.dp))
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(text = name, fontSize = 18.sp, fontWeight = FontWeight.Medium)
             Text(text = time, fontSize = 14.sp, color = Color.DarkGray)
+        }
+        IconButton(onClick = onDelete) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
         }
     }
 }
 
-// คอมโพเนนต์ย่อยสำหรับแสดงรายการค่าใช้จ่าย
+// 💡 อัปเดตคอมโพเนนต์ให้รับ onDelete
 @Composable
-fun ExpenseRow(title: String, amount: String, isBold: Boolean = false) {
+fun ExpenseRow(title: String, amount: String, isBold: Boolean = false, onDelete: (() -> Unit)? = null) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = title, fontSize = 16.sp, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
+        Text(text = title, modifier = Modifier.weight(1f), fontSize = 16.sp, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal)
         Text(text = amount, fontSize = 18.sp, fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal, color = if(isBold) Color(0xFFF7B05B) else Color.Black)
+        if (onDelete != null) {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red, modifier = Modifier.size(20.dp))
+            }
+        }
     }
 }

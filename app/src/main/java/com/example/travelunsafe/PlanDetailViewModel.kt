@@ -83,4 +83,23 @@ class PlanDetailViewModel : ViewModel() {
             } catch (e: Exception) { onError(e.message ?: "Error") }
         }
     }
+    fun deleteItinerary(tripId: String, itineraryId: String) {
+        viewModelScope.launch {
+            try {
+                // 💡 เปลี่ยนจาก TravelClient เป็น TripPlanClient
+                val response = TripPlanClient.apiService.deleteItinerary(itineraryId)
+                if (response.isSuccessful) loadTripDetail(tripId)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    fun deleteExpense(tripId: String, expenseId: String) {
+        viewModelScope.launch {
+            try {
+                // 💡 เปลี่ยนจาก TravelClient เป็น TripPlanClient
+                val response = TripPlanClient.apiService.deleteExpense(expenseId)
+                if (response.isSuccessful) loadTripDetail(tripId)
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
 }

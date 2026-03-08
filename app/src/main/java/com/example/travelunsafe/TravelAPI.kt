@@ -5,6 +5,9 @@ import retrofit2.http.*
 
 interface TravelAPI {
 
+    @GET("provinces")
+    suspend fun getAllProvinces(): List<Province>
+
     @POST("login")
     suspend fun login(
         @Body request: LoginRequest
@@ -145,13 +148,6 @@ interface TravelAPI {
     ): List<Place>
 
     // ===================================
-    //  PROVINCES
-    // ===================================
-
-    @GET("provinces")
-    suspend fun getAllProvinces(): List<Province>
-
-    // ===================================
     //  BOOKINGS
     // ===================================
 
@@ -193,6 +189,9 @@ interface TravelAPI {
         @Body request: CreateExpenseRequest
     ): Response<ApiResponse>
 
+    @DELETE("api/expenses/{id}")
+    suspend fun deleteExpense(@Path("id") expenseId: String): Response<ApiResponse>
+
     // ===================================
     //  FAVORITE PLACES
     // ===================================
@@ -220,4 +219,7 @@ interface TravelAPI {
     suspend fun getItinerary(
         @Query("trip_id") tripId: String
     ): List<Itinerary>
+
+    @DELETE("api/itinerarys/{id}")
+    suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
 }
