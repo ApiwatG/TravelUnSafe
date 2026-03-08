@@ -19,6 +19,10 @@ sealed class Screen(val route: String) {
     object Friends     : Screen("friends")
     object TripDetail  : Screen("trip_detail/{trip_id}") {
         fun createRoute(tripId: String) = "trip_detail/$tripId"
+
+        object PlaceDetailScreen : Screen("place_detail/{placeId}") {
+            fun createRoute(placeId: String) = "place_detail/$placeId"
+        }
     }
     // ── Hotel ─────────────────────────────────────────────
     object HotelList   : Screen("hotel_list")
@@ -39,6 +43,8 @@ sealed class Screen(val route: String) {
     object GuideDetail : Screen("guide_detail/{guideId}") {
         fun createRoute(guideId: String) = "guide_detail/$guideId"
     }
+
+
 }
 
 @Composable
@@ -93,6 +99,9 @@ fun NavGraph(navController: NavHostController) {
                 onBack = { navController.popBackStack() },
                 onGuideClick = { guideId ->
                     navController.navigate(Screen.GuideDetail.createRoute(guideId))
+                },
+                onPlaceClick = { placeId ->
+                    navController.navigate(Screen.TripDetail.PlaceDetailScreen.createRoute(placeId))
                 }
             )
         }
@@ -163,6 +172,20 @@ fun NavGraph(navController: NavHostController) {
         }
 
         // ── PLAN DETAIL ───────────────────────────────────
+        composable(
+            route = Screen.TripDetail.PlaceDetailScreen.route,
+            arguments = listOf(navArgument("placeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val placeId = backStackEntry.arguments?.getString("placeId") ?: return@composable
+            PlaceDetailScreen(
+                placeId = placeId,
+                viewModel = travelViewModel,
+                prefs = prefs,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+
         composable(
             route     = "plan_detail/{tripId}",
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })

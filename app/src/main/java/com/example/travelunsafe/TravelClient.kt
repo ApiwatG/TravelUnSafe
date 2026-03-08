@@ -9,7 +9,7 @@ object TravelClient {
 
     // ⚠️ Change to your LAN IP when testing on real device (e.g. 192.168.1.x:3000)
     // Use 10.0.2.2:3000 for Android Emulator
-    private const val BASE_URL = "http://10.0.2.2:3000/"
+    private const val BASE_URL = "http://192.168.1.11:3000/"
 
     private val okHttpClient = OkHttpClient.Builder()
         .connectTimeout(30, TimeUnit.SECONDS)

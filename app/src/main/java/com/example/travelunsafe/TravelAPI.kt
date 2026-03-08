@@ -150,6 +150,11 @@ interface TravelAPI {
         @Query("category_id") categoryId: String? = null
     ): List<Place>
 
+    @GET("places/{id}")
+    suspend fun getPlaceById(
+        @Path("id") placeId: String
+    ): Response<PlaceDetail>
+
     // ===================================
     //  BOOKINGS
     // ===================================

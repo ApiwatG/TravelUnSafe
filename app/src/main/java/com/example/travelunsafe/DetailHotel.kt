@@ -44,7 +44,7 @@ fun HotelDetailScreen(
     val context = LocalContext.current
 
     // ตั้งค่า URL ของรูปภาพให้ตรงกับ Server ของเรา
-    val baseUrl = "http://192.168.1.11:3001/images/"
+    val baseUrl = "http://192.168.1.11:3000/images/"
 
     Scaffold(
         topBar = {

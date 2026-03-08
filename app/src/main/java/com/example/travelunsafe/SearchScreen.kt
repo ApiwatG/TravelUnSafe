@@ -45,7 +45,8 @@ data class GuideResult(
 fun SearchScreen(
     viewModel: TravelViewModel,
     onBack: () -> Unit,
-    onGuideClick: ((String) -> Unit)? = null
+    onGuideClick: ((String) -> Unit)? = null,
+    onPlaceClick: ((String) -> Unit)? = null
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
@@ -256,7 +257,10 @@ fun SearchScreen(
                     }
                 } else {
                     items(filteredPlaces, key = { it.place_id }) { place ->
-                        PlaceResultRow(place = place)
+                        PlaceResultRow(
+                            place = place,
+                            onClick = { onPlaceClick?.invoke(place.place_id) }  // ← ADD
+                        )
                         HorizontalDivider(
                             color = Color(0xFFEEEEEE),
                             thickness = 1.dp,
@@ -394,11 +398,11 @@ fun HotelBookingBanner() {
 
 // ===== PLACE RESULT ROW =====
 @Composable
-fun PlaceResultRow(place: Place) {
+fun PlaceResultRow(place: Place, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: navigate to place detail */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
