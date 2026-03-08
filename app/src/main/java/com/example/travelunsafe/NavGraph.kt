@@ -19,10 +19,9 @@ sealed class Screen(val route: String) {
     object Friends     : Screen("friends")
     object TripDetail  : Screen("trip_detail/{trip_id}") {
         fun createRoute(tripId: String) = "trip_detail/$tripId"
-
-        object PlaceDetailScreen : Screen("place_detail/{placeId}") {
-            fun createRoute(placeId: String) = "place_detail/$placeId"
-        }
+    }
+    object PlaceDetailScreen : Screen("place_detail/{placeId}") {
+        fun createRoute(placeId: String) = "place_detail/$placeId"
     }
     // ── Hotel ─────────────────────────────────────────────
     object HotelList   : Screen("hotel_list")
@@ -96,12 +95,13 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.Search.route) {
             SearchScreen(
                 viewModel = travelViewModel,
+                prefs = prefs,                    // ← ADD THIS
                 onBack = { navController.popBackStack() },
                 onGuideClick = { guideId ->
                     navController.navigate(Screen.GuideDetail.createRoute(guideId))
                 },
                 onPlaceClick = { placeId ->
-                    navController.navigate(Screen.TripDetail.PlaceDetailScreen.createRoute(placeId))
+                    navController.navigate(Screen.PlaceDetailScreen.createRoute(placeId))
                 }
             )
         }
@@ -173,7 +173,7 @@ fun NavGraph(navController: NavHostController) {
 
         // ── PLAN DETAIL ───────────────────────────────────
         composable(
-            route = Screen.TripDetail.PlaceDetailScreen.route,
+            route = Screen.PlaceDetailScreen.route,
             arguments = listOf(navArgument("placeId") { type = NavType.StringType })
         ) { backStackEntry ->
             val placeId = backStackEntry.arguments?.getString("placeId") ?: return@composable
@@ -243,7 +243,13 @@ fun NavGraph(navController: NavHostController) {
             val isFallback   by hotelViewModel.isFallbackMode.collectAsState()
             val searchedProv by hotelViewModel.searchedProvince.collectAsState()
 
-            LaunchedEffect(province) { hotelViewModel.setInitialProvince(province) }
+            LaunchedEffect(province) {
+                if (province == "all") {
+                    hotelViewModel.searchHotels("")       // load all hotels
+                } else {
+                    hotelViewModel.setInitialProvince(province)
+                }
+            }
 
             ListHotelScreen(
                 hotels           = hotels,

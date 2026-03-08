@@ -123,11 +123,11 @@ fun PlaceDetailScreen(
                     } else {
                         // Gradient placeholder based on category
                         val gradientColors = when (place.category) {
-                            "Beach" -> listOf(Color(0xFF4FC3F7), Color(0xFF0288D1))
-                            "Mountain" -> listOf(Color(0xFF81C784), Color(0xFF2E7D32))
-                            "Temple" -> listOf(Color(0xFFFFB74D), Color(0xFFE65100))
-                            "Park" -> listOf(Color(0xFFA5D6A7), Color(0xFF388E3C))
-                            "Museum" -> listOf(Color(0xFFCE93D8), Color(0xFF7B1FA2))
+                            "ร้านอาหาร" -> listOf(Color(0xFFFFCC80), Color(0xFFEF6C00))
+                            "สถานที่ท่องเที่ยว" -> listOf(Color(0xFF81C784), Color(0xFF2E7D32))
+                            "คาเฟ่" -> listOf(Color(0xFFCE93D8), Color(0xFF7B1FA2))
+                            "ของหวาน" -> listOf(Color(0xFFEF9A9A), Color(0xFFE53935))
+                            "บาร์" -> listOf(Color(0xFF90CAF9), Color(0xFF1565C0))
                             else -> listOf(Color(0xFF90CAF9), Color(0xFF1565C0))
                         }
                         Box(
@@ -141,11 +141,11 @@ fun PlaceDetailScreen(
                             contentAlignment = Alignment.Center
                         ) {
                             val icon = when (place.category) {
-                                "Beach" -> Icons.Default.BeachAccess
-                                "Mountain" -> Icons.Default.Terrain
-                                "Temple" -> Icons.Default.AccountBalance
-                                "Park" -> Icons.Default.Park
-                                "Museum" -> Icons.Default.Museum
+                                "ร้านอาหาร" -> Icons.Default.Restaurant
+                                "สถานที่ท่องเที่ยว" -> Icons.Default.Place
+                                "คาเฟ่" -> Icons.Default.Coffee
+                                "ของหวาน" -> Icons.Default.Cake
+                                "บาร์" -> Icons.Default.LocalBar
                                 else -> Icons.Default.Place
                             }
                             Icon(

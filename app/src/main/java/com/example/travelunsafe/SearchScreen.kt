@@ -23,7 +23,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.compose.ui.platform.LocalContext
 // ===== CATEGORY DATA CLASS =====
 data class PlaceCategory(
     val label: String,
@@ -44,10 +44,12 @@ data class GuideResult(
 @Composable
 fun SearchScreen(
     viewModel: TravelViewModel,
+    prefs: SharedPreferencesManager,
     onBack: () -> Unit,
     onGuideClick: ((String) -> Unit)? = null,
     onPlaceClick: ((String) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
@@ -256,15 +258,21 @@ fun SearchScreen(
                         EmptySearchResult(message = "ไม่พบสถานที่ที่ค้นหา")
                     }
                 } else {
+
                     items(filteredPlaces, key = { it.place_id }) { place ->
                         PlaceResultRow(
                             place = place,
-                            onClick = { onPlaceClick?.invoke(place.place_id) }  // ← ADD
-                        )
-                        HorizontalDivider(
-                            color = Color(0xFFEEEEEE),
-                            thickness = 1.dp,
-                            modifier = Modifier.padding(horizontal = 16.dp)
+                            onClick = { onPlaceClick?.invoke(place.place_id) },
+                            onFavorite = {
+                                val userId = prefs.getUserId()
+                                if (userId.isNotBlank()) {
+                                    viewModel.addFavorite(
+                                        context = context,
+                                        userId = userId,
+                                        placeId = place.place_id
+                                    )
+                                }
+                            }
                         )
                     }
                 }
@@ -398,7 +406,7 @@ fun HotelBookingBanner() {
 
 // ===== PLACE RESULT ROW =====
 @Composable
-fun PlaceResultRow(place: Place, onClick: () -> Unit = {}) {
+fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, onFavorite: (() -> Unit)? = null ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -483,7 +491,20 @@ fun PlaceResultRow(place: Place, onClick: () -> Unit = {}) {
                     fontSize = 12.sp,
                     color = Color(0xFF9E9E9E)
                 )
+
             }
+        }
+
+        if (onFavorite != null) {
+            IconButton(onClick = { onFavorite() }) {
+                Icon(
+                    Icons.Default.FavoriteBorder,
+                    contentDescription = "Add to favorites",
+                    tint = Color(0xFFE57373),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
         }
     }
 }

@@ -24,26 +24,23 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
-import coil.compose.AsyncImage // อย่าลืม Import Coil
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.CircularProgressIndicator
+import coil.compose.AsyncImage
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HotelDetailScreen(
     hotel: Hotel,
-    tripId: String? = null,        // ✅ เพิ่ม — รับ tripId จาก NavGraph
-    userId: String = "U0001",// <--- 1. รับข้อมูล Hotel ที่ถูกคลิกส่งเข้ามา
+    tripId: String? = null,
+    userId: String = "U0001",
     viewModel: TravelViewModel,
     onBackClick: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var checkInInput by remember { mutableStateOf("") }   // ✅ เพิ่ม
-    var checkOutInput by remember { mutableStateOf("") }  // ✅ เพิ่ม
-    var isBooking by remember { mutableStateOf(false) }   // ✅ เพิ่ม
+    var checkInInput by remember { mutableStateOf("") }
+    var checkOutInput by remember { mutableStateOf("") }
+    var isBooking by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    // ตั้งค่า URL ของรูปภาพให้ตรงกับ Server ของเรา
     val baseUrl = "http://192.168.1.11:3000/images/"
 
     Scaffold(
@@ -76,15 +73,14 @@ fun HotelDetailScreen(
                 textAlign = TextAlign.Center
             )
 
-            // 2. เปลี่ยนกล่องสีเทา เป็นรูปภาพจริงจาก Database
             AsyncImage(
                 model = if (!hotel.image_url.isNullOrEmpty()) "$baseUrl${hotel.image_url}" else "",
                 contentDescription = hotel.hotel_name,
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(250.dp),
-                contentScale = ContentScale.Crop, // ตัดภาพให้เต็มสัดส่วน
-                error = androidx.compose.ui.graphics.painter.ColorPainter(Color.LightGray) // ถ้าโหลดรูปไม่ขึ้นให้เป็นสีเทา
+                contentScale = ContentScale.Crop,
+                error = androidx.compose.ui.graphics.painter.ColorPainter(Color.LightGray)
             )
 
             Column(modifier = Modifier.padding(16.dp)) {
@@ -94,7 +90,6 @@ fun HotelDetailScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    // 3. ชื่อโรงแรมจาก Database
                     Text(
                         text = hotel.hotel_name,
                         fontSize = 20.sp,
@@ -114,9 +109,8 @@ fun HotelDetailScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 4. ราคาต่อคืน
                 Text(
-                    text = "฿${hotel.price_per_night} / คืน",
+                    text = "฿${hotel.price_per_night.toInt()} / คืน",
                     fontSize = 18.sp,
                     color = Color(0xFF00B0FF),
                     fontWeight = FontWeight.Bold
@@ -124,14 +118,8 @@ fun HotelDetailScreen(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // 5. สถานที่ตั้ง (เอา Address ต่อกับ Province)
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Default.LocationOn,
-                        contentDescription = null,
-                        tint = Color(0xFF2196F3),
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Icon(Icons.Default.LocationOn, null, tint = Color(0xFF2196F3), modifier = Modifier.size(16.dp))
                     Spacer(modifier = Modifier.width(4.dp))
                     Text(
                         text = "${hotel.address ?: ""} ${hotel.province_name ?: ""}",
@@ -142,38 +130,20 @@ fun HotelDetailScreen(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // 6. เบอร์โทรติดต่อ (ตรวจสอบก่อนว่ามีเบอร์ไหม)
                 if (!hotel.contact_phone.isNullOrEmpty()) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(
-                            imageVector = Icons.Default.Phone, // ไอคอนโทรศัพท์
-                            contentDescription = null,
-                            tint = Color(0xFF4CAF50), // สีเขียว
-                            modifier = Modifier.size(16.dp)
-                        )
+                        Icon(Icons.Default.Phone, null, tint = Color(0xFF4CAF50), modifier = Modifier.size(16.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(
-                            text = hotel.contact_phone,
-                            fontSize = 14.sp,
-                            color = Color.Gray
-                        )
+                        Text(text = hotel.contact_phone, fontSize = 14.sp, color = Color.Gray)
                     }
                 }
 
                 Spacer(modifier = Modifier.height(24.dp))
 
-                Text(
-                    text = "รายละเอียด",
-                    fontSize = 16.sp,
-                    color = Color.Gray,
-                    fontWeight = FontWeight.Medium
-                )
-
+                Text(text = "รายละเอียด", fontSize = 16.sp, color = Color.Gray, fontWeight = FontWeight.Medium)
                 Spacer(modifier = Modifier.height(8.dp))
-
-                // 👇 7. เปลี่ยนมาใช้ข้อมูลจริงจาก Database
                 Text(
-                    text = hotel.hoteldetail ?: "ไม่มีข้อมูลรายละเอียดสำหรับโรงแรมนี้", // ถ้าค่าเป็น null ให้โชว์ข้อความเผื่อไว้
+                    text = hotel.hoteldetail ?: "ไม่มีข้อมูลรายละเอียดสำหรับโรงแรมนี้",
                     fontSize = 14.sp,
                     color = Color.Black,
                     lineHeight = 22.sp
@@ -181,7 +151,7 @@ fun HotelDetailScreen(
             }
         }
 
-        // ส่วนของ Dialog ยืนยันการเพิ่ม (ใช้แบบเดิมได้เลย)
+        // ===== DIALOG - FIXED: wrapped in try-catch, actually books =====
         if (showDialog) {
             Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
@@ -197,7 +167,21 @@ fun HotelDetailScreen(
                             text = "ยืนยันการเพิ่มหรือไม่?",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 32.dp)
+                            modifier = Modifier.padding(bottom = 16.dp)
+                        )
+
+                        Text(
+                            text = hotel.hotel_name,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF212121),
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        )
+                        Text(
+                            text = "฿${hotel.price_per_night.toInt()} / คืน",
+                            fontSize = 14.sp,
+                            color = Color(0xFF00B0FF),
+                            modifier = Modifier.padding(bottom = 24.dp)
                         )
 
                         Row(
@@ -206,8 +190,31 @@ fun HotelDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    showDialog = false
-                                    Toast.makeText(context, "เพิ่มสำเร็จเรียบร้อย!", Toast.LENGTH_SHORT).show()
+                                    android.util.Log.d("HOTEL_DEBUG", "Confirm clicked. tripId=$tripId, userId=$userId, hotelId=${hotel.hotel_id}, price=${hotel.price_per_night}")
+                                    try {
+                                        showDialog = false
+                                        if (tripId != null && tripId.isNotBlank()) {
+                                            android.util.Log.d("HOTEL_DEBUG", "Calling createBooking...")
+                                            viewModel.createBooking(
+                                                context = context,
+                                                hotelId = hotel.hotel_id,
+                                                userId = userId,
+                                                tripId = tripId,
+                                                checkIn = "2025-01-01",
+                                                checkOut = "2025-01-02",
+                                                totalPrice = hotel.price_per_night.toInt(),
+                                                onSuccess = {
+                                                    Toast.makeText(context, "จองสำเร็จ!", Toast.LENGTH_SHORT).show()
+                                                }
+                                            )
+                                        } else {
+                                            android.util.Log.d("HOTEL_DEBUG", "No tripId, just showing toast")
+                                            Toast.makeText(context, "เพิ่มสำเร็จเรียบร้อย!", Toast.LENGTH_SHORT).show()
+                                        }
+                                    } catch (e: Exception) {
+                                        android.util.Log.e("HOTEL_DEBUG", "CRASH: ${e.message}", e)
+                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                    }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFAB40)),
                                 modifier = Modifier.width(90.dp)
