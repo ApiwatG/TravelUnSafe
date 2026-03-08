@@ -41,8 +41,9 @@ fun TravelApp(
     prefs: SharedPreferencesManager,
     onNavigateToSearch: () -> Unit,
     onNavigateToFriends: () -> Unit,
-    onNavigateToHotels: () -> Unit,       // ← opens ListHotelScreen
-    onNavigateToCreatePlan: () -> Unit,   // ← opens CreatePlanScreen (FAB)
+    onNavigateToHotels: () -> Unit,
+    onNavigateToCreatePlan: () -> Unit,
+    onNavigateToCreateGuide: () -> Unit,   // ← NEW
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -93,10 +94,13 @@ fun TravelApp(
         FabPopupMenu(
             visible   = showFabMenu,
             onDismiss = { showFabMenu = false },
-            onGuideClick = { showFabMenu = false },         // TODO: guide screen
+            onGuideClick = {
+                showFabMenu = false
+                onNavigateToCreateGuide()                   // ✅ NOW WIRED!
+            },
             onTravelPlanClick = {
                 showFabMenu = false
-                onNavigateToCreatePlan()                    // ✅ wired!
+                onNavigateToCreatePlan()
             }
         )
     }

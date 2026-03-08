@@ -74,7 +74,9 @@ fun ProfileScreen(
 
     // Load profile when screen opens
     LaunchedEffect(userId) {
+        android.util.Log.d("PROFILE_DEBUG", "LaunchedEffect: userId=[$userId], viewModel=${viewModel != null}")
         if (userId.isNotBlank() && viewModel != null) {
+            android.util.Log.d("PROFILE_DEBUG", "Calling loadProfile($userId)")
             viewModel.loadProfile(userId)
         }
     }
@@ -128,12 +130,15 @@ fun ProfileScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         val imageUrl = profile?.user?.image_profile
+                        android.util.Log.d("PROFILE_DEBUG", "image_profile = [$imageUrl]")
+                        android.util.Log.d("PROFILE_DEBUG", "full profile user = ${profile?.user}")
                         if (!imageUrl.isNullOrBlank()) {
+                            val fullUrl = "http://192.168.1.11:3000/$imageUrl"
                             AsyncImage(
-                                model = "http://192.168.1.11:3000/uploads/$imageUrl",
-                                contentDescription = "Profile",
-                                modifier = Modifier.fillMaxSize().clip(CircleShape),
-                                contentScale = ContentScale.Crop
+                                model = fullUrl,
+                                contentDescription = "Profile Image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape)
                             )
                         } else {
                             Text(text = "👤", fontSize = 32.sp)
