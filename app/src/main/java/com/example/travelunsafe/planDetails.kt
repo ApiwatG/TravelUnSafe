@@ -41,7 +41,6 @@ fun PlanDetailScreen(
     viewModel: PlanDetailViewModel,
     tripId: String = "1",
     onBack: () -> Unit,
-    // 💡 แก้ไข: เพิ่ม tripId เข้าไปในพารามิเตอร์นี้
     onNavigateToHotels: (province: String, tripId: String) -> Unit
 ) {
     val scrollState = rememberScrollState()
@@ -65,9 +64,13 @@ fun PlanDetailScreen(
     var newTripNameInput by remember { mutableStateOf("") }
     var showAddFriendDialog by remember { mutableStateOf(false) }
 
+    // 💡 ตัวแปรสำหรับเก็บข้อมูลที่จะลบ (เพื่อใช้โชว์ Popup ยืนยัน)
     var memberToRemove by remember { mutableStateOf<Friend?>(null) }
+    var bookingToRemove by remember { mutableStateOf<Booking?>(null) }
+    var itineraryToRemove by remember { mutableStateOf<Itinerary?>(null) }
+    var expenseToRemove by remember { mutableStateOf<Expense?>(null) }
 
-    // 💡 แก้ไข: ใช้ DisposableEffect เพื่อดึงข้อมูลใหม่ทุกครั้งที่กลับมาหน้านี้ (รวมถึงตอนเด้งกลับมาจากหน้าโรงแรม)
+    // รีเฟรชหน้าจอเมื่อกลับมาหน้านี้
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
@@ -177,7 +180,6 @@ fun PlanDetailScreen(
         )
         Spacer(modifier = Modifier.height(32.dp))
 
-
         // 💡 แสดงโรงแรมที่พัก
         if (viewModel.tripBookings.isNotEmpty()) {
             Text(text = "โรงแรมที่พัก", fontSize = 22.sp, fontWeight = FontWeight.Bold)
@@ -189,7 +191,10 @@ fun PlanDetailScreen(
                     shape = RoundedCornerShape(12.dp),
                     colors = CardDefaults.cardColors(containerColor = Color(0xFFE3F2FD))
                 ) {
-                    Row(modifier = Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Box(
                             modifier = Modifier.size(50.dp).clip(CircleShape).background(Color(0xFF5BB2F9)),
                             contentAlignment = Alignment.Center
@@ -203,6 +208,10 @@ fun PlanDetailScreen(
                             Text(text = "เช็คอิน: ${booking.check_in_date.substringBefore("T")}", fontSize = 12.sp, color = Color.DarkGray)
                             Text(text = "เช็คเอาท์: ${booking.check_out_date.substringBefore("T")}", fontSize = 12.sp, color = Color.DarkGray)
                         }
+                        // 💡 ปุ่มลบโรงแรม
+                        IconButton(onClick = { bookingToRemove = booking }) {
+                            Icon(Icons.Default.Delete, contentDescription = "Delete", tint = Color.Red)
+                        }
                     }
                 }
             }
@@ -215,9 +224,12 @@ fun PlanDetailScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(
                     onClick = {
-                        val province = trip?.province?.ifBlank { "all" } ?: "all"
-                        // 💡 ส่ง tripId ไปพร้อมกับ province ด้วย
-                        onNavigateToHotels(province, tripId)
+                        val provName = trip?.province
+                            ?: viewModel.availablePlaces.find { it.provinces_id == trip?.provinces_id }?.province
+                            ?: "all"
+
+                        val finalProv = if (provName.isBlank()) "all" else provName
+                        onNavigateToHotels(finalProv, tripId)
                     },
                     shape = RoundedCornerShape(20.dp),
                     border = BorderStroke(1.dp, Color(0xFF00B0FF)),
@@ -227,7 +239,9 @@ fun PlanDetailScreen(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("โรงแรม", color = Color(0xFF00B0FF), fontSize = 13.sp)
                 }
-                Icon(Icons.Default.Add, contentDescription = "เพิ่มสถานที่", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showItineraryDialog = true })
+                IconButton(onClick = { showItineraryDialog = true }) {
+                    Icon(Icons.Default.Add, contentDescription = "เพิ่มสถานที่", tint = Color(0xFFF7B05B))
+                }
             }
         }
 
@@ -236,7 +250,8 @@ fun PlanDetailScreen(
             PlaceItemMockup(
                 name = itinerary.place_name ?: "ไม่มีชื่อสถานที่",
                 time = "เวลา : ${itinerary.start_time ?: "-"} ถึง ${itinerary.end_time ?: "-"} น.",
-                onDelete = { viewModel.deleteItinerary(tripId, itinerary.itinerary_id) }
+                // 💡 กดแล้วแสดง Popup
+                onDelete = { itineraryToRemove = itinerary }
             )
             Spacer(modifier = Modifier.height(16.dp))
         }
@@ -246,14 +261,17 @@ fun PlanDetailScreen(
         // ส่วนของค่าใช้จ่าย (Expense)
         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
             Text(text = "ค่าใช้จ่าย", fontSize = 22.sp, fontWeight = FontWeight.Bold)
-            Icon(Icons.Default.Add, contentDescription = "เพิ่มค่าใช้จ่าย", tint = Color(0xFFF7B05B), modifier = Modifier.clickable { showExpenseDialog = true })
+            IconButton(onClick = { showExpenseDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "เพิ่มค่าใช้จ่าย", tint = Color(0xFFF7B05B))
+            }
         }
         Spacer(modifier = Modifier.height(16.dp))
         viewModel.expenseList.forEach { expense ->
             ExpenseRow(
                 title = expense.expense_name,
                 amount = "${expense.amount} บาท",
-                onDelete = { viewModel.deleteExpense(tripId, expense.expense_id) }
+                // 💡 กดแล้วแสดง Popup
+                onDelete = { expenseToRemove = expense }
             )
         }
 
@@ -265,12 +283,280 @@ fun PlanDetailScreen(
         Spacer(modifier = Modifier.height(100.dp))
     }
 
-    // กล่อง Popup ต่างๆ คงเดิมตามที่คุณส่งมา...
-    if (memberToRemove != null) { /* ... */ }
-    if (showAddFriendDialog) { /* ... */ }
-    if (showEditNameDialog) { /* ... */ }
-    if (showItineraryDialog) { /* ... */ }
-    if (showExpenseDialog) { /* ... */ }
+    // =========================================================================
+    // โค้ดกล่อง POPUP สำหรับลบรายการต่างๆ
+    // =========================================================================
+
+    // 🔴 1. Popup ยืนยันการลบเพื่อน
+    if (memberToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { memberToRemove = null },
+            title = { Text("ลบเพื่อนออกจากทริป", fontWeight = FontWeight.Bold) },
+            text = { Text("คุณต้องการเตะ ${memberToRemove!!.username} ออกจากทริปนี้ใช่หรือไม่?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.removeMemberFromTrip(
+                            tripId = tripId,
+                            userId = memberToRemove!!.user_id,
+                            onSuccess = {
+                                Toast.makeText(context, "ลบเพื่อนเรียบร้อย", Toast.LENGTH_SHORT).show()
+                                memberToRemove = null
+                            },
+                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                        )
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("ลบเลย", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { memberToRemove = null }) { Text("ยกเลิก", color = Color.Gray) }
+            }
+        )
+    }
+
+    // 🔴 2. Popup ยืนยันการลบโรงแรม
+    if (bookingToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { bookingToRemove = null },
+            title = { Text("ลบโรงแรมที่พัก", fontWeight = FontWeight.Bold) },
+            text = { Text("คุณต้องการลบ ${bookingToRemove!!.hotel_name} ออกจากทริปใช่หรือไม่?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteBooking(tripId, bookingToRemove!!.booking_id)
+                        Toast.makeText(context, "ลบโรงแรมเรียบร้อย", Toast.LENGTH_SHORT).show()
+                        bookingToRemove = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("ลบเลย", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { bookingToRemove = null }) { Text("ยกเลิก", color = Color.Gray) } }
+        )
+    }
+
+    // 🔴 3. Popup ยืนยันการลบสถานที่
+    if (itineraryToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { itineraryToRemove = null },
+            title = { Text("ลบสถานที่เที่ยว", fontWeight = FontWeight.Bold) },
+            text = { Text("คุณต้องการลบ ${itineraryToRemove!!.place_name} ออกจากแผนการเดินทางใช่หรือไม่?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteItinerary(tripId, itineraryToRemove!!.itinerary_id)
+                        Toast.makeText(context, "ลบสถานที่เรียบร้อย", Toast.LENGTH_SHORT).show()
+                        itineraryToRemove = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("ลบเลย", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { itineraryToRemove = null }) { Text("ยกเลิก", color = Color.Gray) } }
+        )
+    }
+
+    // 🔴 4. Popup ยืนยันการลบค่าใช้จ่าย
+    if (expenseToRemove != null) {
+        AlertDialog(
+            onDismissRequest = { expenseToRemove = null },
+            title = { Text("ลบค่าใช้จ่าย", fontWeight = FontWeight.Bold) },
+            text = { Text("คุณต้องการลบรายการ ${expenseToRemove!!.expense_name} ใช่หรือไม่?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteExpense(tripId, expenseToRemove!!.expense_id)
+                        Toast.makeText(context, "ลบค่าใช้จ่ายเรียบร้อย", Toast.LENGTH_SHORT).show()
+                        expenseToRemove = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                ) { Text("ลบเลย", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { expenseToRemove = null }) { Text("ยกเลิก", color = Color.Gray) } }
+        )
+    }
+
+    // =========================================================================
+    // โค้ดกล่อง POPUP เพิ่มข้อมูล (เหมือนเดิม)
+    // =========================================================================
+
+    // กล่อง Popup เชิญเพื่อน
+    if (showAddFriendDialog) {
+        var searchQuery by remember { mutableStateOf("") }
+
+        val filteredFriends = viewModel.friendsList.filter { f ->
+            viewModel.tripMembers.none { it.user_id == f.user_id } && f.username.contains(searchQuery, ignoreCase = true)
+        }
+
+        AlertDialog(
+            onDismissRequest = { showAddFriendDialog = false },
+            title = { Text(text = "เชิญเพื่อนร่วมทริป", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it },
+                        placeholder = { Text("ค้นหาชื่อเพื่อน...") },
+                        leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.Gray) },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp)
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
+                        if (filteredFriends.isEmpty()) {
+                            item { Text("ไม่พบเพื่อน หรือเพื่อนทุกคนอยู่ในทริปนี้แล้ว", color = Color.Gray, modifier = Modifier.padding(8.dp)) }
+                        } else {
+                            items(filteredFriends) { friend ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier.size(40.dp).clip(CircleShape).background(Color.LightGray),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(friend.username.firstOrNull()?.toString()?.uppercase() ?: "?", color = Color.DarkGray, fontWeight = FontWeight.Bold)
+                                    }
+                                    Spacer(modifier = Modifier.width(12.dp))
+                                    Text(text = friend.username, modifier = Modifier.weight(1f))
+
+                                    TextButton(onClick = {
+                                        viewModel.addMemberToTrip(
+                                            tripId = tripId,
+                                            userId = friend.user_id,
+                                            onSuccess = { Toast.makeText(context, "ส่งคำเชิญให้ ${friend.username} เรียบร้อยแล้ว", Toast.LENGTH_SHORT).show() },
+                                            onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                                        )
+                                    }) { Text("เชิญ", color = Color(0xFFF7B05B), fontWeight = FontWeight.Bold) }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showAddFriendDialog = false }) { Text("ปิด", color = Color.Gray) } }
+        )
+    }
+
+    // กล่อง Popup สำหรับแก้ไขชื่อทริป
+    if (showEditNameDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditNameDialog = false },
+            title = { Text(text = "แก้ไขชื่อทริป", fontWeight = FontWeight.Bold) },
+            text = {
+                OutlinedTextField(
+                    value = newTripNameInput,
+                    onValueChange = { newTripNameInput = it },
+                    label = { Text("ชื่อทริป") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (newTripNameInput.isNotBlank()) {
+                            viewModel.editTripName(
+                                tripId = tripId,
+                                newName = newTripNameInput,
+                                onSuccess = { showEditNameDialog = false },
+                                onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
+                            )
+                        }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF7B05B))
+                ) { Text("บันทึก", color = Color.White) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditNameDialog = false }) { Text("ยกเลิก", color = Color.Gray) }
+            }
+        )
+    }
+
+    // กล่อง Popup สำหรับเพิ่มสถานที่
+    if (showItineraryDialog) {
+
+        val filteredPlaces = viewModel.availablePlaces.filter { place ->
+            val tripProvId = trip?.provinces_id ?: ""
+            if (tripProvId.isBlank()) {
+                true // ถ้าไม่มีรหัสจังหวัดผูกมา ให้โชว์ทั้งหมดไปเลย
+            } else {
+                place.provinces_id == tripProvId // เทียบรหัสให้ตรงกันเป๊ะๆ
+            }
+        }
+
+        AlertDialog(
+            onDismissRequest = { showItineraryDialog = false },
+            title = { Text(text = "เพิ่มสถานที่", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        OutlinedButton(onClick = { expandedPlaceMenu = true }, modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(8.dp)) {
+                            Text(selectedPlace?.place_name ?: "กดเพื่อเลือกสถานที่...", color = Color.Black)
+                        }
+                        DropdownMenu(expanded = expandedPlaceMenu, onDismissRequest = { expandedPlaceMenu = false }) {
+                            if (filteredPlaces.isEmpty()) {
+                                DropdownMenuItem(text = { Text("ไม่มีข้อมูลสถานที่ในจังหวัดนี้") }, onClick = { expandedPlaceMenu = false })
+                            } else {
+                                filteredPlaces.forEach { place ->
+                                    DropdownMenuItem(text = { Text(place.place_name) }, onClick = { selectedPlace = place; expandedPlaceMenu = false })
+                                }
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+                    OutlinedTextField(value = startTimeInput, onValueChange = { startTimeInput = it }, label = { Text("เวลาเริ่ม (เช่น 09:00)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = endTimeInput, onValueChange = { endTimeInput = it }, label = { Text("เวลาจบ (เช่น 11:30)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        if (selectedPlace != null && startTimeInput.isNotBlank()) {
+                            viewModel.addItinerary(tripId = tripId, placeId = selectedPlace!!.place_id, startTime = startTimeInput, endTime = endTimeInput,
+                                onSuccess = { selectedPlace = null; startTimeInput = ""; endTimeInput = ""; showItineraryDialog = false },
+                                onError = { error -> Toast.makeText(context, "บันทึกไม่ได้: $error", Toast.LENGTH_LONG).show() }
+                            )
+                        } else { Toast.makeText(context, "กรุณาเลือกสถานที่และใส่เวลา", Toast.LENGTH_SHORT).show() }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF7B05B))
+                ) { Text("บันทึก", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { showItineraryDialog = false }) { Text("ยกเลิก", color = Color.Gray) } }
+        )
+    }
+
+    // กล่อง Popup สำหรับเพิ่มค่าใช้จ่าย
+    if (showExpenseDialog) {
+        AlertDialog(
+            onDismissRequest = { showExpenseDialog = false },
+            title = { Text(text = "เพิ่มค่าใช้จ่าย", fontWeight = FontWeight.Bold) },
+            text = {
+                Column {
+                    OutlinedTextField(value = expenseNameInput, onValueChange = { expenseNameInput = it }, label = { Text("ชื่อรายการ (เช่น ค่ากิน, ค่าที่พัก)") }, modifier = Modifier.fillMaxWidth(), singleLine = true)
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(value = expenseAmountInput, onValueChange = { expenseAmountInput = it }, label = { Text("ราคา (บาท)") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number), singleLine = true)
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        val amount = expenseAmountInput.toIntOrNull() ?: 0
+                        if (expenseNameInput.isNotBlank() && amount > 0) {
+                            viewModel.addExpense(tripId = tripId, name = expenseNameInput, amount = amount,
+                                onSuccess = { expenseNameInput = ""; expenseAmountInput = ""; showExpenseDialog = false },
+                                onError = { errorMsg -> Toast.makeText(context, "บันทึกไม่ได้: $errorMsg", Toast.LENGTH_LONG).show() }
+                            )
+                        } else { Toast.makeText(context, "กรุณากรอกชื่อและราคาให้ถูกต้อง", Toast.LENGTH_SHORT).show() }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF7B05B))
+                ) { Text("บันทึก", color = Color.White) }
+            },
+            dismissButton = { TextButton(onClick = { showExpenseDialog = false }) { Text("ยกเลิก", color = Color.Gray) } }
+        )
+    }
 }
 
 @Composable

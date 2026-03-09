@@ -33,10 +33,10 @@ class TripViewModel : ViewModel() {
         }
     }
 
-    // ฟังก์ชันสร้างทริป (เหมือนเดิม)
+    // 💡 แก้ไข: เปลี่ยนคำว่า province เป็น provinces_id (และใส่ ? เพื่อรองรับค่าว่าง)
     fun createNewTrip(
         tripName: String,
-        province: String,
+        provinces_id: String?,
         startDateStr: String,
         endDateStr: String,
         userId: String,
@@ -47,7 +47,7 @@ class TripViewModel : ViewModel() {
             try {
                 val request = CreateTripRequest(
                     trip_name  = tripName,
-                    province   = province,
+                    provinces_id   = provinces_id, // 💡 ส่งค่า provinces_id ใส่เข้าไปใน Request
                     start_date = formatToMySQLDate(startDateStr),
                     end_date   = formatToMySQLDate(endDateStr) ?: formatToMySQLDate(startDateStr),
                     user_id    = userId

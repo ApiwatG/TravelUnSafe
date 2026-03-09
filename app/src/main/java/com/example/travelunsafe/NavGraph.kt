@@ -272,7 +272,7 @@ fun NavGraph(navController: NavHostController) {
                 isFallbackMode   = isFallback,
                 searchedProvince = searchedProv,
                 ratingMap = ratingMap,
-                province         = "",
+                province         = province,
                 onBack           = { navController.popBackStack() },
                 onHotelClick     = { hotel ->
                     selectedHotel = hotel

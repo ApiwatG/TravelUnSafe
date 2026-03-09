@@ -104,6 +104,11 @@ interface TripPlanApiService {
 
     @DELETE("api/expenses/{id}")
     suspend fun deleteExpense(@Path("id") expenseId: String): Response<ApiResponse>
+
+    @DELETE("api/bookings/{bookingId}")
+    suspend fun deleteBooking(
+        @Path("bookingId") bookingId: String
+    ): retrofit2.Response<ApiResponse>
 }
 
 object TripPlanClient {

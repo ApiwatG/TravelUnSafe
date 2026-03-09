@@ -47,7 +47,7 @@ fun CreatePlanScreen(
     // 2. ดึงเฉพาะชื่อจังหวัด (provinces_name) ออกมาเป็น List ของ String
     val provinces = provinceDataList.map { it.provinces_name }
 
-    // 💡 3. กรองรายชื่อจังหวัดตามสิ่งที่ผู้ใช้พิมพ์ (ค้นหา)
+    // 3. กรองรายชื่อจังหวัดตามสิ่งที่ผู้ใช้พิมพ์ (ค้นหา)
     val filteredProvinces = provinces.filter {
         it.contains(selectedProvince, ignoreCase = true)
     }
@@ -88,7 +88,7 @@ fun CreatePlanScreen(
                     selectedProvince = it
                     expandedProvince = true // เปิด Dropdown อัตโนมัติเวลาเริ่มพิมพ์
                 },
-                readOnly = false, // 💡 เปลี่ยนเป็น false เพื่อให้คีย์บอร์ดเด้งและพิมพ์ค้นหาได้
+                readOnly = false, // เปลี่ยนเป็น false เพื่อให้คีย์บอร์ดเด้งและพิมพ์ค้นหาได้
                 placeholder = { Text("ค้นหาหรือเลือกจังหวัด", color = Color.Gray) },
                 leadingIcon = { Text("จังหวัด:", modifier = Modifier.padding(start = 16.dp), fontWeight = FontWeight.Bold) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedProvince) },
@@ -99,7 +99,7 @@ fun CreatePlanScreen(
                 colors = OutlinedTextFieldDefaults.colors(unfocusedBorderColor = Color(0xFF5BB2F9), focusedBorderColor = Color(0xFF5BB2F9))
             )
 
-            // 💡 แสดงรายการเมนูที่ผ่านการกรองแล้ว (filteredProvinces)
+            // แสดงรายการเมนูที่ผ่านการกรองแล้ว (filteredProvinces)
             if (filteredProvinces.isNotEmpty()) {
                 ExposedDropdownMenu(
                     expanded = expandedProvince,
@@ -165,9 +165,15 @@ fun CreatePlanScreen(
         Button(
             onClick = {
                 isLoading = true
+
+                // 💡 1. ค้นหา provinces_id จากชื่อจังหวัดที่ผู้ใช้เลือกมา
+                val selectedProvinceId = provinceDataList.find {
+                    it.provinces_name == selectedProvince
+                }?.provinces_id
+
                 viewModel.createNewTrip(
                     tripName = destination,
-                    province = selectedProvince,
+                    provinces_id = selectedProvinceId, // 💡 2. ส่ง ID ไปหา ViewModel
                     startDateStr = startDate,
                     endDateStr = endDate,
                     userId = userId,

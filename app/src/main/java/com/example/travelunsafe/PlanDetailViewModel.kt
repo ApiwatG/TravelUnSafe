@@ -110,4 +110,20 @@ class PlanDetailViewModel : ViewModel() {
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
+
+    fun deleteBooking(tripId: String, bookingId: String) {
+        viewModelScope.launch {
+            try {
+                // 1. ส่งคำสั่งไปลบที่เซิร์ฟเวอร์
+                TripPlanClient.apiService.deleteBooking(bookingId)
+
+                // 2. 💡 สั่งดึงข้อมูลโรงแรมของทริปนี้ใหม่จากฐานข้อมูลมาอัปเดตหน้าจอทันที
+                // (ถ้าลบสำเร็จ ข้อมูลใน List จะหายไปทันทีเหมือนของสถานที่และค่าใช้จ่ายครับ)
+                tripBookings = TripPlanClient.apiService.getBookingsByTrip(tripId)
+
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
 }

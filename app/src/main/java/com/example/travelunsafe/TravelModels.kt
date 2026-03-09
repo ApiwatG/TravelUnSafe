@@ -42,10 +42,12 @@ data class RegisterResponse(
     val user_id: String? = null
 )
 
+
 // ===== TRIP =====
 data class Trip(
     val trip_id: String,
     val province: String? = null,
+    val provinces_id: String? = null, // 💡 เพิ่มบรรทัดนี้! เพื่อให้แอปจำรหัสจังหวัดได้
     val trip_name: String,
     val start_date: String? = null,
     val end_date: String? = null,
@@ -55,7 +57,7 @@ data class Trip(
 
 data class CreateTripRequest(
     val trip_name: String,
-    val province: String? = null,
+    val provinces_id: String? = null,
     val start_date: String? = null,
     val end_date: String? = null,
     val user_id: String
