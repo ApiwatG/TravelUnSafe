@@ -44,6 +44,10 @@ fun PlanDetailScreen(
     val trip = viewModel.currentTrip
     val context = LocalContext.current
 
+    // 💡 ดึง userId ของคนที่ล็อกอินอยู่มาใช้
+    val prefs = remember { SharedPreferencesManager(context) }
+    val currentUserId = prefs.getUserId()
+
     var showExpenseDialog by remember { mutableStateOf(false) }
     var expenseNameInput by remember { mutableStateOf("") }
     var expenseAmountInput by remember { mutableStateOf("") }
@@ -61,7 +65,8 @@ fun PlanDetailScreen(
     var memberToRemove by remember { mutableStateOf<Friend?>(null) }
 
     LaunchedEffect(tripId) {
-        viewModel.loadTripDetail(tripId)
+        // 💡 ส่ง currentUserId เข้าไปให้โหลดข้อมูลถูกต้อง
+        viewModel.loadTripDetail(tripId, currentUserId)
     }
 
     if (viewModel.isLoading) {
@@ -204,7 +209,7 @@ fun PlanDetailScreen(
             ExpenseRow(
                 title = expense.expense_name,
                 amount = "${expense.amount} บาท",
-                onDelete = { viewModel.deleteExpense(tripId, expense.expense_id) } // 💡 เพิ่มปุ่มลบ
+                onDelete = { viewModel.deleteExpense(tripId, expense.expense_id) }
             )
         }
 
@@ -290,7 +295,7 @@ fun PlanDetailScreen(
                                         viewModel.addMemberToTrip(
                                             tripId = tripId,
                                             userId = friend.user_id,
-                                            onSuccess = { Toast.makeText(context, "เชิญ ${friend.username} เรียบร้อย", Toast.LENGTH_SHORT).show() },
+                                            onSuccess = { Toast.makeText(context, "ส่งคำเชิญให้ ${friend.username} เรียบร้อยแล้ว", Toast.LENGTH_SHORT).show() },
                                             onError = { error -> Toast.makeText(context, error, Toast.LENGTH_SHORT).show() }
                                         )
                                     }) { Text("เชิญ", color = Color(0xFFF7B05B), fontWeight = FontWeight.Bold) }

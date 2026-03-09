@@ -73,6 +73,36 @@ class TravelViewModel : ViewModel() {
     var successMessage by mutableStateOf("")
         private set
 
+    var tripInvitations by mutableStateOf<List<TripInvitation>>(emptyList())
+        private set
+
+    fun loadTripInvitations(userId: String) {
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.getTripInvitations(userId)
+                if (response.isSuccessful) {
+                    tripInvitations = response.body() ?: emptyList()
+                }
+            } catch (e: Exception) { e.printStackTrace() }
+        }
+    }
+
+    // ฟังก์ชันยอมรับเข้าทริป
+    fun acceptTripInvitation(tripId: String, userId: String) {
+        viewModelScope.launch {
+            try { TravelClient.travelAPI.acceptTripInvitation(tripId, userId) } catch (_: Exception) {}
+            loadTripInvitations(userId) // โหลดรีเฟรชใหม่
+        }
+    }
+
+    // ฟังก์ชันปฏิเสธ (ใช้คำสั่ง Delete เหมือนลบเพื่อนออกจากทริป)
+    fun declineTripInvitation(tripId: String, userId: String) {
+        viewModelScope.launch {
+            try { TravelClient.travelAPI.deleteMemberFromTrip(tripId, userId) } catch (_: Exception) {}
+            // 💡 หมายเหตุ: ถ้าใน TravelAPI คุณใช้คำสั่งลบคนในทริปว่าชื่ออื่น ให้เปลี่ยนชื่อตามด้วยนะครับ
+            loadTripInvitations(userId) // โหลดรีเฟรชใหม่
+        }
+    }
     // ===== HELPERS =====
 
     fun clearMessages() {
