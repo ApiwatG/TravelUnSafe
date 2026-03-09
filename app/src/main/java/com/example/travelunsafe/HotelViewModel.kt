@@ -24,15 +24,20 @@ class HotelViewModel : ViewModel() {
     private val _initialProvince = MutableStateFlow("")
     val initialProvince: StateFlow<String> = _initialProvince.asStateFlow()
 
+    private val _ratingMap = MutableStateFlow<Map<String, Double>>(emptyMap())
+    val ratingMap: StateFlow<Map<String, Double>> = _ratingMap.asStateFlow()
+
     fun searchHotels(query: String) {
         viewModelScope.launch {
             try {
                 _isLoading.value = true
                 _searchedProvince.value = query // เก็บคำค้นหาล่าสุดไว้
 
-                // ----------------------------------------------------
-                // ✅ แก้ตรงนี้: เปลี่ยนจาก HotelClient เป็น TripPlanClient
-                // ----------------------------------------------------
+                val allReviews = TravelClient.travelAPI.getReviews()
+                _ratingMap.value = allReviews
+                    .groupBy { it.hotel_id }
+                    .mapValues { (_, reviews) -> reviews.map { it.rating }.average() }
+
                 val allHotels = TravelClient.travelAPI.getHotels()
 
                 if (query.isBlank()) {
@@ -74,6 +79,8 @@ class HotelViewModel : ViewModel() {
                         .groupBy { it.hotel_id }
                         .mapValues { (_, reviews) -> reviews.map { it.rating }.average() }
                 } else emptyMap()
+
+                _ratingMap.value = ratingMap
 
                 val filtered = allHotels.filter { hotel ->
                     val priceOk = (minPrice == null || hotel.price_per_night >= minPrice) &&

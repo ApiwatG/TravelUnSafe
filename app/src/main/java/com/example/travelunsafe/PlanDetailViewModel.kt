@@ -18,18 +18,22 @@ class PlanDetailViewModel : ViewModel() {
     var isLoading       by mutableStateOf(false)
     var errorMessage    by mutableStateOf<String?>(null)
 
+    var tripBookings by mutableStateOf<List<Booking>>(emptyList())
+        private set
+
     val totalExpense: Int
         get() = expenseList.sumOf { it.amount }
 
-    // 💡 แก้ไข: รับ userId เข้ามาด้วย เพื่อไม่ให้ล็อคตายตัวเป็น U0001
+    // 💡 รวบตึงเหลือฟังก์ชันเดียว และดึงข้อมูลโรงแรม (tripBookings) เข้ามาแล้ว
     fun loadTripDetail(tripId: String, userId: String) {
         viewModelScope.launch {
             isLoading = true
             try { currentTrip    = TripPlanClient.apiService.getTripById(tripId)           } catch (_: Exception) {}
+            try { tripBookings   = TripPlanClient.apiService.getBookingsByTrip(tripId)     } catch (_: Exception) { tripBookings = emptyList() }
             try { itineraryList  = TripPlanClient.apiService.getItineraryByTrip(tripId)    } catch (_: Exception) { itineraryList  = emptyList() }
             try { expenseList    = TripPlanClient.apiService.getExpensesByTrip(tripId)     } catch (_: Exception) { expenseList    = emptyList() }
             try { availablePlaces = TripPlanClient.apiService.getPlaces()                  } catch (_: Exception) { availablePlaces = emptyList() }
-            try { friendsList    = TripPlanClient.apiService.getFriends(userId)            } catch (_: Exception) { friendsList    = emptyList() } // 💡 เปลี่ยนมาใช้ userId จริง
+            try { friendsList    = TripPlanClient.apiService.getFriends(userId)            } catch (_: Exception) { friendsList    = emptyList() }
             try { tripMembers    = TripPlanClient.apiService.getTripMembers(tripId)        } catch (_: Exception) { tripMembers    = emptyList() }
             isLoading = false
         }

@@ -36,12 +36,9 @@ fun HotelDetailScreen(
     onBackClick: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
-    var checkInInput by remember { mutableStateOf("") }
-    var checkOutInput by remember { mutableStateOf("") }
-    var isBooking by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val baseUrl = "http://10.0.2.2:3000/images/"
+    val baseUrl = "http://10.0.2.2:3000/images/" // แก้ IP ให้ตรงกับเครื่องคุณถ้าใช้เครื่องจริงเทสต์
 
     Scaffold(
         topBar = {
@@ -151,7 +148,7 @@ fun HotelDetailScreen(
             }
         }
 
-        // ===== DIALOG - FIXED: wrapped in try-catch, actually books =====
+        // ===== DIALOG ยืนยันการจอง =====
         if (showDialog) {
             Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
@@ -190,29 +187,27 @@ fun HotelDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    android.util.Log.d("HOTEL_DEBUG", "Confirm clicked. tripId=$tripId, userId=$userId, hotelId=${hotel.hotel_id}, price=${hotel.price_per_night}")
                                     try {
                                         showDialog = false
+                                        // 💡 สำคัญ: ตรวจสอบว่ามี tripId ส่งมาหรือไม่
                                         if (tripId != null && tripId.isNotBlank()) {
-                                            android.util.Log.d("HOTEL_DEBUG", "Calling createBooking...")
                                             viewModel.createBooking(
                                                 context = context,
                                                 hotelId = hotel.hotel_id,
                                                 userId = userId,
                                                 tripId = tripId,
-                                                checkIn = "2025-01-01",
-                                                checkOut = "2025-01-02",
+                                                checkIn = "2025-01-01", // TODO: ถ้ามีปฏิทินให้เปลี่ยนตรงนี้
+                                                checkOut = "2025-01-02", // TODO: ถ้ามีปฏิทินให้เปลี่ยนตรงนี้
                                                 totalPrice = hotel.price_per_night.toInt(),
                                                 onSuccess = {
-                                                    Toast.makeText(context, "จองสำเร็จ!", Toast.LENGTH_SHORT).show()
+                                                    Toast.makeText(context, "เพิ่มโรงแรมลงทริปสำเร็จ!", Toast.LENGTH_SHORT).show()
+                                                    onBackClick() // 💡 สั่งให้เด้งกลับหน้าเดิมทันทีที่สำเร็จ
                                                 }
                                             )
                                         } else {
-                                            android.util.Log.d("HOTEL_DEBUG", "No tripId, just showing toast")
-                                            Toast.makeText(context, "เพิ่มสำเร็จเรียบร้อย!", Toast.LENGTH_SHORT).show()
+                                            Toast.makeText(context, "Error: ไม่พบรหัสทริป (tripId เป็น null)", Toast.LENGTH_LONG).show()
                                         }
                                     } catch (e: Exception) {
-                                        android.util.Log.e("HOTEL_DEBUG", "CRASH: ${e.message}", e)
                                         Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
                                     }
                                 },

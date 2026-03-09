@@ -53,6 +53,7 @@ fun NavGraph(navController: NavHostController) {
     val hotelViewModel: HotelViewModel           = viewModel()
     val tripViewModel: TripViewModel             = viewModel()
     val planDetailViewModel: PlanDetailViewModel  = viewModel()
+    val ratingMap by hotelViewModel.ratingMap.collectAsState()
 
     val context = LocalContext.current
     val prefs   = remember { SharedPreferencesManager(context) }
@@ -148,15 +149,20 @@ fun NavGraph(navController: NavHostController) {
 
         // ── HOTEL DETAIL ──────────────────────────────────
         composable(Screen.HotelDetail.route) {
+            val context = LocalContext.current
             val prefs = remember { SharedPreferencesManager(context) }
 
+            // 💡 ตรวจสอบว่ามีโรงแรมที่ถูกเลือก (selectedHotel) หรือไม่
             selectedHotel?.let { hotel ->
                 HotelDetailScreen(
-                    hotel      = hotel,
-                    tripId     = null,              // ✅ ถ้ามาจากหน้าหลัก ไม่มี tripId
-                    userId     = prefs.getUserId(), // ✅ ดึง userId จาก SharedPreferences
-                    viewModel  = travelViewModel,
-                    onBackClick = { navController.popBackStack() }
+                    hotel       = hotel,
+                    // 💡 แก้ไขตรงนี้: ใช้ selectedTripId ที่เราเก็บไว้ตอนเลือกโรงแรม
+                    tripId      = selectedTripId,
+                    userId      = prefs.getUserId(),
+                    viewModel   = travelViewModel,
+                    onBackClick = {
+                        navController.popBackStack()
+                    }
                 )
             }
         }
@@ -192,13 +198,16 @@ fun NavGraph(navController: NavHostController) {
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
         ) { backStackEntry ->
             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
+
             PlanDetailScreen(
                 viewModel          = planDetailViewModel,
                 tripId             = tripId,
                 onBack             = { navController.popBackStack() },
-                onNavigateToHotels = { province ->
-                    // ✅ ส่งทั้ง province และ tripId
-                    navController.navigate(Screen.HotelListFromPlan.createRoute(province, tripId))
+                onNavigateToHotels = { province, tripIdArg -> // 💡 ใส่ 2 ตัวแปร
+
+                        val encoded = java.net.URLEncoder.encode(province, "UTF-8")
+                    navController.navigate(Screen.HotelListFromPlan.createRoute(encoded, tripId))
+
                 }
             )
         }
@@ -236,8 +245,10 @@ fun NavGraph(navController: NavHostController) {
                 navArgument("tripId")   { type = NavType.StringType }
             )
         ) { backStackEntry ->
-            val province = backStackEntry.arguments?.getString("province") ?: ""
-            val tripId   = backStackEntry.arguments?.getString("tripId")   ?: ""
+            val provinceRaw = backStackEntry.arguments?.getString("province") ?: "all"
+            val province = java.net.URLDecoder.decode(provinceRaw, "UTF-8")
+                .let { if (it == "all") "" else it }
+            val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
 
             val hotels       by hotelViewModel.hotels.collectAsState()
             val isLoading    by hotelViewModel.isLoading.collectAsState()
@@ -245,11 +256,11 @@ fun NavGraph(navController: NavHostController) {
             val searchedProv by hotelViewModel.searchedProvince.collectAsState()
 
             LaunchedEffect(province) {
-                if (province == "all") {
-                    hotelViewModel.searchHotels("")       // load all hotels
-                } else {
-                    hotelViewModel.setInitialProvince(province)
-                }
+                if (province.isBlank()) {
+                hotelViewModel.searchHotels("")
+            } else {
+                hotelViewModel.setInitialProvince(province)
+            }
             }
 
             ListHotelScreen(
@@ -257,11 +268,12 @@ fun NavGraph(navController: NavHostController) {
                 isLoading        = isLoading,
                 isFallbackMode   = isFallback,
                 searchedProvince = searchedProv,
-                province         = province,
+                ratingMap = ratingMap,
+                province         = "",
                 onBack           = { navController.popBackStack() },
                 onHotelClick     = { hotel ->
-                    selectedHotel  = hotel
-                    selectedTripId = tripId  // ✅ เก็บ tripId ไว้ใช้ใน HotelDetail
+                    selectedHotel = hotel
+                    selectedTripId = tripId
                     navController.navigate(Screen.HotelDetail.route)
                 },
                 onApplyFilter = { minPrice, maxPrice, maxGuest, minRating ->

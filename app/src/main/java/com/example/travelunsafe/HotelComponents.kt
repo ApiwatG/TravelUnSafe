@@ -97,7 +97,8 @@ fun HotelCardSkeleton() {
 
 @Composable
 fun HotelCard(
-    hotel: Hotel, // รับข้อมูล Hotel เข้ามา
+    hotel: Hotel,
+    rating: Double = 0.0,
     onClick: () -> Unit
 ) {
     // URL พื้นฐานของรูปภาพ (เปลี่ยน IP เป็นเครื่อง Server ของคุณ)
@@ -150,7 +151,11 @@ fun HotelCard(
                         )
                     }
                     Spacer(modifier = Modifier.height(4.dp))
-                    Text(text = "⭐⭐⭐", fontSize = 12.sp)
+                    Text(
+                        text = if (rating > 0) "⭐ ${"%.1f".format(rating)}" else "⭐ 0",
+                        fontSize = 12.sp,
+                        color = Color.Gray
+                    )
                 }
                 Text(
                     text = "฿${hotel.price_per_night.toInt()}/คืน", // ใส่ราคาจริง

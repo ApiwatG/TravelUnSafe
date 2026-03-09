@@ -94,6 +94,11 @@ interface TripPlanApiService {
     @POST("api/favorites")
     suspend fun addFavorite(@Body request: AddFavoriteRequest): AddFavoriteResponse
 
+    @GET("api/bookings/trip/{tripId}")
+    suspend fun getBookingsByTrip(@Path("tripId") tripId: String): List<Booking>
+
+
+
     @DELETE("api/itinerarys/{id}")
     suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
 

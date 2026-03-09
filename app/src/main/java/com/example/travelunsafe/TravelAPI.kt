@@ -244,6 +244,8 @@ interface TravelAPI {
         @Path("userId") userId: String
     ): retrofit2.Response<ApiResponse>
 
+
+
     @DELETE("api/itinerarys/{id}")
     suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
 }

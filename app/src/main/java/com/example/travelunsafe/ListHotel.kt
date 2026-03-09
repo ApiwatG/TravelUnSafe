@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 fun ListHotelScreen(
     hotels: List<Hotel>,
     isLoading: Boolean = false,
+    ratingMap: Map<String, Double> = emptyMap(),
 
     // ✅ เพิ่ม 2 ตัวแปรนี้เข้ามา เพื่อรับสถานะว่าหาโรงแรมเจอไหม
     isFallbackMode: Boolean = false,
@@ -91,7 +92,9 @@ fun ListHotelScreen(
                 }
             } else {
                 hotels.forEach { hotel ->
-                    HotelCard(hotel = hotel, onClick = { onHotelClick(hotel) })
+                    HotelCard(hotel = hotel,
+                        rating = ratingMap[hotel.hotel_id] ?: 0.0,
+                        onClick = { onHotelClick(hotel) })
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
