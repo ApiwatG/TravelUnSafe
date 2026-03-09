@@ -154,7 +154,12 @@ fun LoginScreen(
                                 prefs = prefs,
                                 onSuccess = {
                                     if (rememberEmail) prefs.saveEmail(email) else prefs.clearSavedEmail()
-                                    navController.navigate(Screen.Main.route) {
+                                    val destination = if (prefs.getRole() == "admin") {
+                                        Screen.Admin.route
+                                    } else {
+                                        Screen.Main.route
+                                    }
+                                    navController.navigate(destination) {
                                         popUpTo(Screen.Login.route) { inclusive = true }
                                     }
                                 },

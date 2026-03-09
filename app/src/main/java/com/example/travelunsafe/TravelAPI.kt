@@ -93,6 +93,11 @@ interface TravelAPI {
         @Path("id") userId: String
     ): Response<ApiResponse>
 
+    @DELETE("hotels/{hotel_id}")
+    suspend fun deleteHotel(
+        @Path("hotel_id") hotelId: String
+    ): Response<ApiResponse>
+
     // ===================================
     //  TRIPS
     // ===================================

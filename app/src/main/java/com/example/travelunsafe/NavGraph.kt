@@ -31,11 +31,11 @@ sealed class Screen(val route: String) {
     object PlanDetail  : Screen("plan_detail/{tripId}") {
         fun createRoute(tripId: String) = "plan_detail/$tripId"
     }
+
+    // ── เส้นทางจากฝั่งของคุณ (HEAD) ───────────────────────
     object HotelListFromPlan : Screen("hotel_list_from_plan/{province}/{tripId}") {
         fun createRoute(province: String, tripId: String) = "hotel_list_from_plan/$province/$tripId"
     }
-
-
 
     // ── Guide ─────────────────────────────────────────────
     object CreateGuide : Screen("create_guide")
@@ -43,7 +43,11 @@ sealed class Screen(val route: String) {
         fun createRoute(guideId: String) = "guide_detail/$guideId"
     }
 
-
+    // ── เส้นทางจากฝั่งของ Tle (origin/Tle) ────────────────
+    object Profile : Screen("profile/{user_id}") {
+        fun createRoute(userId: String) = "profile/$userId"
+    }
+    object Admin : Screen("admin")
 }
 
 @Composable
@@ -57,7 +61,11 @@ fun NavGraph(navController: NavHostController) {
     val context = LocalContext.current
     val prefs   = remember { SharedPreferencesManager(context) }
 
-    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Login.route
+    val startDestination = when {
+        !prefs.isLoggedIn()          -> Screen.Login.route
+        prefs.getRole() == "admin"   -> Screen.Admin.route
+        else                         -> Screen.Main.route
+    }
 
     // Shared hotel state
     var selectedHotel by remember { mutableStateOf<Hotel?>(null) }
@@ -73,6 +81,30 @@ fun NavGraph(navController: NavHostController) {
             RegisterScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
         }
 
+        composable(Screen.Admin.route) {
+            val role = prefs.getRole()
+
+            if (role == "admin") {
+                val adminViewModel: AdminViewModel = viewModel()
+
+                AdminScreen(
+                    viewModel = adminViewModel,
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        prefs.clear() // ลบข้อมูลการล็อกอิน
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
         // ── MAIN SHELL ────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
@@ -160,6 +192,7 @@ fun NavGraph(navController: NavHostController) {
                 )
             }
         }
+
 
         // ── CREATE PLAN ───────────────────────────────────
         composable(Screen.CreatePlan.route) {

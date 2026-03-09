@@ -38,10 +38,10 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
+    val error: Boolean? = null,
     val message: String,
     val user_id: String? = null
 )
-
 // ===== TRIP =====
 data class Trip(
     val trip_id: String,
