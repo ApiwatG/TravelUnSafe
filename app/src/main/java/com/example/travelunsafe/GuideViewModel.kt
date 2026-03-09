@@ -4,8 +4,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import kotlinx.coroutines.launch
 
 // ──────────────────────────────────────────────────────────
 //  UI state passed to GuideDetailScreen
@@ -30,75 +28,36 @@ data class DaySection(
 )
 
 data class GuideDetailUiState(
-    val title: String,
-    val author: GuideAuthor,
-    val days: List<DaySection>,
+    val title: String = "",
+    val description: String? = null,
+    val imageUrl: String? = null,
+    val author: GuideAuthor = GuideAuthor(""),
+    val createdAt: String? = null,
+    val days: List<DaySection> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null
 )
 
 // ──────────────────────────────────────────────────────────
-//  ViewModel
+//  ViewModel — maps GuideModel directly (no extra API call)
 // ──────────────────────────────────────────────────────────
 class GuideViewModel : ViewModel() {
 
-    var uiState by mutableStateOf(
-        GuideDetailUiState(
-            title    = "",
-            author   = GuideAuthor(""),
-            days     = emptyList(),
-            isLoading = true
-        )
-    )
+    var uiState by mutableStateOf(GuideDetailUiState(isLoading = true))
         private set
 
-    // Load guide detail — guide metadata from TravelClient (port 3000),
-    // itinerary data from TripPlanClient (port 3001)
     fun loadGuide(guide: GuideModel) {
-        viewModelScope.launch {
-            uiState = uiState.copy(isLoading = true, error = null)
-            try {
-                val itineraries = TripPlanClient.apiService
-                    .getItineraryByTrip(guide.guide_id)
-
-                uiState = GuideDetailUiState(
-                    title    = guide.guide_name,
-                    author   = GuideAuthor(
-                        name  = guide.username ?: "ไม่ระบุชื่อ",
-                        image = guide.image_profile
-                    ),
-                    days      = mapToDays(itineraries),
-                    isLoading = false
-                )
-            } catch (e: Exception) {
-                uiState = uiState.copy(
-                    isLoading = false,
-                    error     = "โหลดข้อมูลไม่สำเร็จ: ${e.message}"
-                )
-            }
-        }
+        uiState = GuideDetailUiState(
+            title       = guide.guide_name,
+            description = guide.guide_detail,
+            imageUrl    = guide.image_guide,
+            author      = GuideAuthor(
+                name  = guide.username ?: "ไม่ระบุชื่อ",
+                image = guide.image_profile
+            ),
+            createdAt = guide.createdAt,
+            days      = emptyList(),   // guide table has no itinerary rows yet
+            isLoading = false
+        )
     }
-
-    private fun mapToDays(itineraries: List<Itinerary>): List<DaySection> {
-        // Group by date, assign day numbers in chronological order
-        return itineraries
-            .groupBy { it.date ?: "ไม่ระบุวัน" }
-            .entries
-            .sortedBy { it.key }
-            .mapIndexed { index, (date, items) ->
-                DaySection(
-                    dayNumber = index + 1,
-                    date      = date,
-                    places    = items.map { it.toPlaceItem() }
-                )
-            }
-    }
-
-    private fun Itinerary.toPlaceItem() = PlaceItem(
-        name      = place_name ?: "ไม่มีชื่อสถานที่",
-        location  = location,
-        startTime = start_time,
-        endTime   = end_time,
-        note      = note
-    )
 }
