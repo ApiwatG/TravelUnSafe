@@ -38,10 +38,10 @@ data class RegisterRequest(
 )
 
 data class RegisterResponse(
+    val error: Boolean? = null,
     val message: String,
     val user_id: String? = null
 )
-
 // ===== TRIP =====
 data class Trip(
     val trip_id: String,
@@ -86,9 +86,10 @@ data class Place(
     val place_name: String,
     val location: String? = null,
     val view: Int = 0,
+    val placedetail: String? = null,     // ← NEW
+    val image_url: String? = null,        // ← NEW
     val category_id: String? = null,
     val provinces_id: String? = null,
-    // ✅ Add these for /api/places JOIN fields
     val category: String? = null,
     val province: String? = null
 )

@@ -1,5 +1,6 @@
 package com.example.travelunsafe
 
+import android.content.Intent
 import androidx.compose.runtime.*
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -19,36 +20,54 @@ sealed class Screen(val route: String) {
     object TripDetail  : Screen("trip_detail/{trip_id}") {
         fun createRoute(tripId: String) = "trip_detail/$tripId"
     }
-    // ── Hotel (friend's feature) ──────────────────────────
+    object PlaceDetailScreen : Screen("place_detail/{placeId}") {
+        fun createRoute(placeId: String) = "place_detail/$placeId"
+    }
+    // ── Hotel ─────────────────────────────────────────────
     object HotelList   : Screen("hotel_list")
-    object HotelDetail : Screen("hotel_detail")  // uses shared state, not path param
-    // ── Travel Plan (friend's feature) ───────────────────
+    object HotelDetail : Screen("hotel_detail")
+    // ── Travel Plan ───────────────────────────────────────
     object CreatePlan  : Screen("create_plan")
     object PlanDetail  : Screen("plan_detail/{tripId}") {
         fun createRoute(tripId: String) = "plan_detail/$tripId"
     }
+
+    // ── เส้นทางจากฝั่งของคุณ (HEAD) ───────────────────────
     object HotelListFromPlan : Screen("hotel_list_from_plan/{province}/{tripId}") {
         fun createRoute(province: String, tripId: String) = "hotel_list_from_plan/$province/$tripId"
     }
 
+    // ── Guide ─────────────────────────────────────────────
+    object CreateGuide : Screen("create_guide")
+    object GuideDetail : Screen("guide_detail/{guideId}") {
+        fun createRoute(guideId: String) = "guide_detail/$guideId"
+    }
 
-
+    // ── เส้นทางจากฝั่งของ Tle (origin/Tle) ────────────────
+    object Profile : Screen("profile/{user_id}") {
+        fun createRoute(userId: String) = "profile/$userId"
+    }
+    object Admin : Screen("admin")
 }
 
 @Composable
 fun NavGraph(navController: NavHostController) {
     // ── ViewModels ────────────────────────────────────────
-    val travelViewModel: TravelViewModel       = viewModel()
-    val hotelViewModel: HotelViewModel         = viewModel()
-    val tripViewModel: TripViewModel           = viewModel()
-    val planDetailViewModel: PlanDetailViewModel = viewModel()
+    val travelViewModel: TravelViewModel         = viewModel()
+    val hotelViewModel: HotelViewModel           = viewModel()
+    val tripViewModel: TripViewModel             = viewModel()
+    val planDetailViewModel: PlanDetailViewModel  = viewModel()
 
     val context = LocalContext.current
     val prefs   = remember { SharedPreferencesManager(context) }
 
-    val startDestination = if (prefs.isLoggedIn()) Screen.Main.route else Screen.Login.route
+    val startDestination = when {
+        !prefs.isLoggedIn()          -> Screen.Login.route
+        prefs.getRole() == "admin"   -> Screen.Admin.route
+        else                         -> Screen.Main.route
+    }
 
-    // Shared hotel state — HotelDetailScreen takes Hotel object not an id
+    // Shared hotel state
     var selectedHotel by remember { mutableStateOf<Hotel?>(null) }
     var selectedTripId by remember { mutableStateOf<String?>(null) }
 
@@ -62,6 +81,30 @@ fun NavGraph(navController: NavHostController) {
             RegisterScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
         }
 
+        composable(Screen.Admin.route) {
+            val role = prefs.getRole()
+
+            if (role == "admin") {
+                val adminViewModel: AdminViewModel = viewModel()
+
+                AdminScreen(
+                    viewModel = adminViewModel,
+                    onBack = { navController.popBackStack() },
+                    onLogout = {
+                        prefs.clear() // ลบข้อมูลการล็อกอิน
+                        navController.navigate(Screen.Login.route) {
+                            popUpTo(0) { inclusive = true }
+                        }
+                    }
+                )
+            } else {
+                LaunchedEffect(Unit) {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+        }
         // ── MAIN SHELL ────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
@@ -71,6 +114,7 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToFriends    = { navController.navigate(Screen.Friends.route) },
                 onNavigateToHotels     = { navController.navigate(Screen.HotelList.route) },
                 onNavigateToCreatePlan = { navController.navigate(Screen.CreatePlan.route) },
+                onNavigateToCreateGuide = { navController.navigate(Screen.CreateGuide.route) },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }
@@ -81,7 +125,17 @@ fun NavGraph(navController: NavHostController) {
 
         // ── SEARCH ───────────────────────────────────────
         composable(Screen.Search.route) {
-            SearchScreen(viewModel = travelViewModel, onBack = { navController.popBackStack() })
+            SearchScreen(
+                viewModel = travelViewModel,
+                prefs = prefs,                    // ← ADD THIS
+                onBack = { navController.popBackStack() },
+                onGuideClick = { guideId ->
+                    navController.navigate(Screen.GuideDetail.createRoute(guideId))
+                },
+                onPlaceClick = { placeId ->
+                    navController.navigate(Screen.PlaceDetailScreen.createRoute(placeId))
+                }
+            )
         }
 
         // ── FRIENDS ──────────────────────────────────────
@@ -89,7 +143,7 @@ fun NavGraph(navController: NavHostController) {
             FriendScreen(viewModel = travelViewModel, prefs = prefs, onBack = { navController.popBackStack() })
         }
 
-        // ── TRIP DETAIL (stub) ────────────────────────────
+        // ── TRIP DETAIL ───────────────────────────────────
         composable(Screen.TripDetail.route) { backStackEntry ->
             val tripId = backStackEntry.arguments?.getString("trip_id") ?: return@composable
             TripDetailScreen(tripId = tripId, navController = navController, viewModel = travelViewModel)
@@ -131,13 +185,14 @@ fun NavGraph(navController: NavHostController) {
             selectedHotel?.let { hotel ->
                 HotelDetailScreen(
                     hotel      = hotel,
-                    tripId     = null,              // ✅ ถ้ามาจากหน้าหลัก ไม่มี tripId
+                    tripId      = selectedTripId,   // ✅ แก้จาก null
                     userId     = prefs.getUserId(), // ✅ ดึง userId จาก SharedPreferences
                     viewModel  = travelViewModel,
                     onBackClick = { navController.popBackStack() }
                 )
             }
         }
+
 
         // ── CREATE PLAN ───────────────────────────────────
         composable(Screen.CreatePlan.route) {
@@ -150,6 +205,20 @@ fun NavGraph(navController: NavHostController) {
         }
 
         // ── PLAN DETAIL ───────────────────────────────────
+        composable(
+            route = Screen.PlaceDetailScreen.route,
+            arguments = listOf(navArgument("placeId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val placeId = backStackEntry.arguments?.getString("placeId") ?: return@composable
+            PlaceDetailScreen(
+                placeId = placeId,
+                viewModel = travelViewModel,
+                prefs = prefs,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+
         composable(
             route     = "plan_detail/{tripId}",
             arguments = listOf(navArgument("tripId") { type = NavType.StringType })
@@ -164,6 +233,31 @@ fun NavGraph(navController: NavHostController) {
                     navController.navigate(Screen.HotelListFromPlan.createRoute(province, tripId))
                 }
             )
+        }
+
+        // ── CREATE GUIDE ──────────────────────────────────
+        composable(Screen.CreateGuide.route) {
+            CreateGuideScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+
+        // ── GUIDE DETAIL ──────────────────────────────────
+        composable(
+            route     = Screen.GuideDetail.route,
+            arguments = listOf(navArgument("guideId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val guideId = backStackEntry.arguments?.getString("guideId") ?: return@composable
+            // Find the guide from loaded list
+            val guide = travelViewModel.guides.find { it.guide_id == guideId }
+            if (guide != null) {
+                val guideViewModel: GuideViewModel = viewModel()
+                LaunchedEffect(guideId) { guideViewModel.loadGuide(guide) }
+                GuideDetailComposable(
+                    uiState = guideViewModel.uiState,
+                    onBack  = { navController.popBackStack() }
+                )
+            }
         }
 
         // ── HOTEL LIST (จากหน้า Plan) ──────────────────────────────
@@ -182,7 +276,13 @@ fun NavGraph(navController: NavHostController) {
             val isFallback   by hotelViewModel.isFallbackMode.collectAsState()
             val searchedProv by hotelViewModel.searchedProvince.collectAsState()
 
-            LaunchedEffect(province) { hotelViewModel.setInitialProvince(province) }
+            LaunchedEffect(province) {
+                if (province == "all") {
+                    hotelViewModel.searchHotels("")       // load all hotels
+                } else {
+                    hotelViewModel.setInitialProvince(province)
+                }
+            }
 
             ListHotelScreen(
                 hotels           = hotels,

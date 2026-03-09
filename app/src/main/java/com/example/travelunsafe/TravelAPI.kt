@@ -93,6 +93,11 @@ interface TravelAPI {
         @Path("id") userId: String
     ): Response<ApiResponse>
 
+    @DELETE("hotels/{hotel_id}")
+    suspend fun deleteHotel(
+        @Path("hotel_id") hotelId: String
+    ): Response<ApiResponse>
+
     // ===================================
     //  TRIPS
     // ===================================
@@ -149,6 +154,11 @@ interface TravelAPI {
         @Query("provinces_id") provincesId: String? = null,
         @Query("category_id") categoryId: String? = null
     ): List<Place>
+
+    @GET("places/{id}")
+    suspend fun getPlaceById(
+        @Path("id") placeId: String
+    ): Response<PlaceDetail>
 
     // ===================================
     //  BOOKINGS

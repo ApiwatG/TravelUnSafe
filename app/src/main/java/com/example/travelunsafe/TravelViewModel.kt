@@ -457,13 +457,16 @@ class TravelViewModel : ViewModel() {
             isLoading = true
             try {
                 val response = TravelClient.travelAPI.getProfile(userId)
+                android.util.Log.d("PROFILE_DEBUG", "loadProfile response: code=${response.code()}, body=${response.body()}")
                 if (response.isSuccessful) {
                     profileSummary = response.body()
                     errorMessage = ""
                 } else {
                     errorMessage = "Failed to load profile"
+                    android.util.Log.d("PROFILE_DEBUG", "loadProfile error: ${response.errorBody()?.string()}")
                 }
             } catch (e: Exception) {
+                android.util.Log.d("PROFILE_DEBUG", "loadProfile exception: ${e.message}")
                 errorMessage = "Error: ${e.message}"
             } finally {
                 isLoading = false
@@ -664,3 +667,4 @@ class TravelViewModel : ViewModel() {
         }
     }
 }
+

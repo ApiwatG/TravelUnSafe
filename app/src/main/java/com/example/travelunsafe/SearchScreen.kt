@@ -5,7 +5,6 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,27 +19,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-
+import androidx.compose.ui.platform.LocalContext
 // ===== CATEGORY DATA CLASS =====
 data class PlaceCategory(
     val label: String,
     val icon: ImageVector
 )
 
-// ===== SEARCH RESULT SEALED CLASS =====
-// Used to interleave places and guides in one list
-sealed class SearchResultItem {
-    data class PlaceItem(val place: Place) : SearchResultItem()
-    data class GuideItem(val guide: GuideResult) : SearchResultItem()
-}
-
-// Guide result model (from FavoritePlace or a guides endpoint)
+// ===== GUIDE RESULT MODEL =====
 data class GuideResult(
     val guide_id: String,
     val title: String,
@@ -54,33 +44,43 @@ data class GuideResult(
 @Composable
 fun SearchScreen(
     viewModel: TravelViewModel,
-    onBack: () -> Unit
+    prefs: SharedPreferencesManager,
+    onBack: () -> Unit,
+    onGuideClick: ((String) -> Unit)? = null,
+    onPlaceClick: ((String) -> Unit)? = null
 ) {
+    val context = LocalContext.current
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
-    // Load provinces + places + guides on enter
+    // Load data on enter
     LaunchedEffect(Unit) {
         viewModel.loadProvinces()
         viewModel.loadPlaces()
         viewModel.loadGuides()
     }
 
-    // Filter places by search query
-    val filteredPlaces = if (searchQuery.isBlank()) viewModel.places
-    else viewModel.places.filter { place ->
-        place.place_name.contains(searchQuery, ignoreCase = true) ||
-                place.location?.contains(searchQuery, ignoreCase = true) == true
+    // ===== FILTER PLACES by name, location, OR province name =====
+    val filteredPlaces = viewModel.places.filter { place ->
+        val matchesSearch = if (searchQuery.isBlank()) true
+        else {
+            place.place_name.contains(searchQuery, ignoreCase = true) ||
+                    place.location?.contains(searchQuery, ignoreCase = true) == true ||
+                    place.province?.contains(searchQuery, ignoreCase = true) == true
+        }
+        val matchesCategory = if (selectedCategory == null) true
+        else place.category?.contains(selectedCategory!!, ignoreCase = true) == true
+        matchesSearch && matchesCategory
     }
 
-    // Map real guides to GuideResult and filter by search query
-    val guideResults = viewModel.guides.map { g ->
+    // ===== FILTER GUIDES by title or author =====
+    val filteredGuides = viewModel.guides.map { g ->
         GuideResult(
-            guide_id   = g.guide_id,
-            title      = g.guide_name,
-            author     = g.username ?: "ไม่ระบุชื่อ",
+            guide_id    = g.guide_id,
+            title       = g.guide_name,
+            author      = g.username ?: "ไม่ระบุชื่อ",
             authorImage = g.image_profile,
-            imageUrl   = g.image_guide
+            imageUrl    = g.image_guide
         )
     }.let { mapped ->
         if (searchQuery.isBlank()) mapped
@@ -89,11 +89,6 @@ fun SearchScreen(
                     guide.author.contains(searchQuery, ignoreCase = true)
         }
     }
-
-    val interleavedResults = buildInterleavedList(filteredPlaces, guideResults)
-
-    // Interleave: 3 places → 3 guides → 3 places → ...
-
 
     val categories = listOf(
         PlaceCategory("ร้านอาหาร", Icons.Filled.Restaurant),
@@ -116,7 +111,6 @@ fun SearchScreen(
                 .padding(horizontal = 16.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back button
             IconButton(onClick = onBack) {
                 Icon(
                     imageVector = Icons.Default.ArrowBack,
@@ -159,7 +153,7 @@ fun SearchScreen(
                         decorationBox = { inner ->
                             if (searchQuery.isEmpty()) {
                                 Text(
-                                    text = "ค้นหาจังหวัด, สถานที่...",
+                                    text = "ค้นหาจังหวัด, สถานที่, ไกด์...",
                                     fontSize = 16.sp,
                                     color = Color(0xFF9E9E9E)
                                 )
@@ -236,7 +230,7 @@ fun SearchScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
 
-            // ===== INTERLEAVED RESULTS =====
+            // ===== LOADING =====
             if (viewModel.isLoading) {
                 item {
                     Box(
@@ -247,16 +241,70 @@ fun SearchScreen(
                     }
                 }
             } else {
-                itemsIndexed(interleavedResults) { _, item ->
-                    when (item) {
-                        is SearchResultItem.PlaceItem -> PlaceResultRow(place = item.place)
-                        is SearchResultItem.GuideItem -> GuideResultRow(guide = item.guide)
-                    }
-                    HorizontalDivider(
-                        color = Color(0xFFEEEEEE),
-                        thickness = 1.dp,
-                        modifier = Modifier.padding(horizontal = 16.dp)
+
+                // ══════════════════════════════════════════
+                //  SECTION 1: สถานที่ (Places)
+                // ══════════════════════════════════════════
+                item {
+                    SectionTitle(
+                        title = "สถานที่",
+                        emoji = "📍",
+                        count = filteredPlaces.size
                     )
+                }
+
+                if (filteredPlaces.isEmpty()) {
+                    item {
+                        EmptySearchResult(message = "ไม่พบสถานที่ที่ค้นหา")
+                    }
+                } else {
+
+                    items(filteredPlaces, key = { it.place_id }) { place ->
+                        PlaceResultRow(
+                            place = place,
+                            onClick = { onPlaceClick?.invoke(place.place_id) },
+                            onFavorite = {
+                                val userId = prefs.getUserId()
+                                if (userId.isNotBlank()) {
+                                    viewModel.addFavorite(
+                                        context = context,
+                                        userId = userId,
+                                        placeId = place.place_id
+                                    )
+                                }
+                            }
+                        )
+                    }
+                }
+
+                // ══════════════════════════════════════════
+                //  SECTION 2: ไกด์การเดินทาง (Guides)
+                // ══════════════════════════════════════════
+                item {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    SectionTitle(
+                        title = "ไกด์การเดินทาง",
+                        emoji = "📖",
+                        count = filteredGuides.size
+                    )
+                }
+
+                if (filteredGuides.isEmpty()) {
+                    item {
+                        EmptySearchResult(message = "ไม่พบไกด์ที่ค้นหา")
+                    }
+                } else {
+                    items(filteredGuides, key = { it.guide_id }) { guide ->
+                        GuideResultRow(
+                            guide = guide,
+                            onClick = { onGuideClick?.invoke(guide.guide_id) }
+                        )
+                        HorizontalDivider(
+                            color = Color(0xFFEEEEEE),
+                            thickness = 1.dp,
+                            modifier = Modifier.padding(horizontal = 16.dp)
+                        )
+                    }
                 }
             }
 
@@ -265,32 +313,49 @@ fun SearchScreen(
     }
 }
 
-// ===== INTERLEAVE BUILDER =====
-// Pattern: 3 places → 3 guides → 3 places → 3 guides...
-fun buildInterleavedList(
-    places: List<Place>,
-    guides: List<GuideResult>
-): List<SearchResultItem> {
-    val result = mutableListOf<SearchResultItem>()
-    var pIdx = 0
-    var gIdx = 0
-    val chunkSize = 3
-
-    while (pIdx < places.size || gIdx < guides.size) {
-        // Add up to 3 places
-        repeat(chunkSize) {
-            if (pIdx < places.size) {
-                result.add(SearchResultItem.PlaceItem(places[pIdx++]))
-            }
+// ===== SECTION TITLE =====
+@Composable
+fun SectionTitle(title: String, emoji: String, count: Int) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(text = emoji, fontSize = 20.sp)
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = title,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF212121)
+            )
         }
-        // Add up to 3 guides
-        repeat(chunkSize) {
-            if (gIdx < guides.size) {
-                result.add(SearchResultItem.GuideItem(guides[gIdx++]))
-            }
-        }
+        Text(
+            text = "$count รายการ",
+            fontSize = 13.sp,
+            color = Color(0xFF9E9E9E)
+        )
     }
-    return result
+}
+
+// ===== EMPTY RESULT =====
+@Composable
+fun EmptySearchResult(message: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Text(
+            text = message,
+            fontSize = 14.sp,
+            color = Color(0xFF9E9E9E)
+        )
+    }
 }
 
 // ===== HOTEL BOOKING BANNER =====
@@ -322,53 +387,45 @@ fun HotelBookingBanner() {
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
-                Spacer(modifier = Modifier.height(10.dp))
-                Button(
-                    onClick = { /* TODO: navigate to hotel booking */ },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFFFF9800)
-                    ),
-                    shape = RoundedCornerShape(24.dp),
-                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-                ) {
-                    Text(
-                        text = "จองโรงแรม",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
-                }
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "จองโรงแรมราคาพิเศษ",
+                    fontSize = 14.sp,
+                    color = Color.White.copy(alpha = 0.85f)
+                )
             }
-
-            // Sleeping person emoji placeholder
-            Text(text = "😴", fontSize = 52.sp)
+            Icon(
+                Icons.Default.Hotel,
+                contentDescription = null,
+                tint = Color.White.copy(alpha = 0.7f),
+                modifier = Modifier.size(48.dp)
+            )
         }
     }
 }
 
 // ===== PLACE RESULT ROW =====
 @Composable
-fun PlaceResultRow(place: Place) {
+fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, onFavorite: (() -> Unit)? = null ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: navigate to place detail */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Thumbnail placeholder
+        // Thumbnail
         Box(
             modifier = Modifier
-                .size(width = 110.dp, height = 80.dp)
+                .size(width = 80.dp, height = 64.dp)
                 .clip(RoundedCornerShape(12.dp))
                 .background(
                     Brush.linearGradient(
-                        listOf(Color(0xFF80CBC4), Color(0xFF4DB6AC))
+                        listOf(Color(0xFF80CBC4), Color(0xFF26A69A))
                     )
                 ),
             contentAlignment = Alignment.Center
         ) {
-            // Replace with AsyncImage when you have real image URLs
             Icon(
                 imageVector = Icons.Default.Place,
                 contentDescription = null,
@@ -388,8 +445,29 @@ fun PlaceResultRow(place: Place) {
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            // Province name
+            if (!place.province.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        imageVector = Icons.Default.LocationOn,
+                        contentDescription = null,
+                        tint = Color(0xFFFF9800),
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(
+                        text = place.province,
+                        fontSize = 12.sp,
+                        color = Color(0xFFFF9800),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+            }
+
             if (!place.location.isNullOrBlank()) {
-                Spacer(modifier = Modifier.height(4.dp))
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = place.location,
                     fontSize = 12.sp,
@@ -398,7 +476,8 @@ fun PlaceResultRow(place: Place) {
                     overflow = TextOverflow.Ellipsis
                 )
             }
-            Spacer(modifier = Modifier.height(6.dp))
+
+            Spacer(modifier = Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Default.Visibility,
@@ -412,22 +491,35 @@ fun PlaceResultRow(place: Place) {
                     fontSize = 12.sp,
                     color = Color(0xFF9E9E9E)
                 )
+
             }
+        }
+
+        if (onFavorite != null) {
+            IconButton(onClick = { onFavorite() }) {
+                Icon(
+                    Icons.Default.FavoriteBorder,
+                    contentDescription = "Add to favorites",
+                    tint = Color(0xFFE57373),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
         }
     }
 }
 
 // ===== GUIDE RESULT ROW =====
 @Composable
-fun GuideResultRow(guide: GuideResult) {
+fun GuideResultRow(guide: GuideResult, onClick: () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable { /* TODO: navigate to guide detail */ }
+            .clickable { onClick() }
             .padding(horizontal = 16.dp, vertical = 12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Thumbnail placeholder
+        // Thumbnail
         Box(
             modifier = Modifier
                 .size(width = 110.dp, height = 80.dp)

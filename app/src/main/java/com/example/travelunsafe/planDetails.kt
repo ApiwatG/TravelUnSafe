@@ -167,7 +167,7 @@ fun PlanDetailScreen(
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                 OutlinedButton(
                     onClick = {
-                        val province = trip?.province ?: ""  // ✅ แก้ currentTrip → trip
+                        val province = trip?.province?.ifBlank { "all" } ?: "all"  // ✅ แก้ currentTrip → trip
                         onNavigateToHotels(province)
                     },
                     shape = RoundedCornerShape(20.dp),

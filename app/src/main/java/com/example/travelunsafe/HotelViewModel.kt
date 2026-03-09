@@ -7,12 +7,13 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
+
 class HotelViewModel : ViewModel() {
     private val _hotels = MutableStateFlow<List<Hotel>>(emptyList())
     val hotels: StateFlow<List<Hotel>> = _hotels.asStateFlow()
 
     // ให้เริ่มต้นที่ false เพราะเรายังไม่ได้กดค้นหา
-    private val _isLoading = MutableStateFlow(false)
+    private val _isLoading = MutableStateFlow(true)  // ✅ เริ่มเป็น true
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
     private val _isFallbackMode = MutableStateFlow(false)

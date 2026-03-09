@@ -8,6 +8,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import coil.compose.AsyncImage
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.material3.*
 import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
@@ -72,7 +74,9 @@ fun ProfileScreen(
 
     // Load profile when screen opens
     LaunchedEffect(userId) {
+        android.util.Log.d("PROFILE_DEBUG", "LaunchedEffect: userId=[$userId], viewModel=${viewModel != null}")
         if (userId.isNotBlank() && viewModel != null) {
+            android.util.Log.d("PROFILE_DEBUG", "Calling loadProfile($userId)")
             viewModel.loadProfile(userId)
         }
     }
@@ -125,8 +129,20 @@ fun ProfileScreen(
                             .background(LightGrayProfile),
                         contentAlignment = Alignment.Center
                     ) {
-                        // TODO: AsyncImage with profile?.user?.image_profile
-                        Text(text = "👤", fontSize = 32.sp)
+                        val imageUrl = profile?.user?.image_profile
+                        android.util.Log.d("PROFILE_DEBUG", "image_profile = [$imageUrl]")
+                        android.util.Log.d("PROFILE_DEBUG", "full profile user = ${profile?.user}")
+                        if (!imageUrl.isNullOrBlank()) {
+                            val fullUrl = "http://192.168.1.11:3000/$imageUrl"
+                            AsyncImage(
+                                model = fullUrl,
+                                contentDescription = "Profile Image",
+                                contentScale = ContentScale.Crop,
+                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                            )
+                        } else {
+                            Text(text = "👤", fontSize = 32.sp)
+                        }
                     }
                 }
                 // ➕ Upload button (bottom-right of avatar)
@@ -336,36 +352,182 @@ fun ProfileStatItem(count: String, label: String) {
 
 // ===== TAB 1: การเดินทาง — real trips from DB =====
 @Composable
-fun TravelContent(trips: List<Trip> = emptyList()) {
+fun TravelContent(
+    trips: List<Trip> = emptyList(),
+    viewModel: TravelViewModel? = null,
+    userId: String = ""
+) {
+    val context = LocalContext.current
+
     if (trips.isEmpty()) {
-        EmptyStateContent(emoji = "🗺️", title = "คุณยังไม่มีแผนใดๆ", subtitle = "เริ่มวางแผนการเดินทางของคุณ", buttonText = "วางแผนการเดินทาง", onButtonClick = { })
+        EmptyStateContent(
+            emoji = "🗺️",
+            title = "คุณยังไม่มีแผนใดๆ",
+            subtitle = "เริ่มวางแผนการเดินทางของคุณ",
+            buttonText = "วางแผนการเดินทาง",
+            onButtonClick = { }
+        )
     } else {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            trips.forEach { trip -> ProfileTripCard(trip = trip) }
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            trips.forEach { trip ->
+                ProfileTripCard(
+                    trip = trip,
+                    onEdit = { newName ->
+                        // Call update API
+                        viewModel?.let { vm ->
+                            // You need to add an updateTrip function or reuse existing
+                            // For now, use the API directly
+                        }
+                    },
+                    onDelete = {
+                        viewModel?.deleteTrip(trip.trip_id, userId)
+                        // Reload profile after delete
+                        if (userId.isNotBlank()) {
+                            viewModel?.loadProfile(userId)
+                        }
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ProfileTripCard(trip: Trip) {
+fun ProfileTripCard(
+    trip: Trip,
+    onEdit: ((String) -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+    var showEditDialog by remember { mutableStateOf(false) }
+    var editName by remember { mutableStateOf(trip.trip_name) }
+
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F5F5)).padding(12.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF5F5F5))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF80CBC4), Color(0xFF26A69A)))),
+            modifier = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF80CBC4), Color(0xFF26A69A)))),
             contentAlignment = Alignment.Center
         ) {
             Icon(Icons.Default.Map, null, tint = Color.White, modifier = Modifier.size(26.dp))
         }
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(text = trip.trip_name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF212121), maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = trip.trip_name,
+                fontSize = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
             val dateText = formatDateRange(trip.start_date, trip.end_date)
             if (dateText.isNotBlank()) {
                 Text(text = dateText, fontSize = 12.sp, color = Color(0xFF757575))
             }
         }
+
+        // 3-dot menu
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = "More",
+                    tint = Color(0xFF757575),
+                    modifier = Modifier.size(20.dp)
+                )
+            }
+            DropdownMenu(
+                expanded = showMenu,
+                onDismissRequest = { showMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("แก้ไขชื่อ") },
+                    onClick = {
+                        showMenu = false
+                        editName = trip.trip_name
+                        showEditDialog = true
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Edit, null, tint = Color(0xFF42A5F5))
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("ลบทริป", color = Color(0xFFE53935)) },
+                    onClick = {
+                        showMenu = false
+                        showDeleteConfirm = true
+                    },
+                    leadingIcon = {
+                        Icon(Icons.Default.Delete, null, tint = Color(0xFFE53935))
+                    }
+                )
+            }
+        }
+    }
+
+    // Delete confirmation
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("ลบทริป?", fontWeight = FontWeight.Bold) },
+            text = { Text("คุณต้องการลบ \"${trip.trip_name}\" ใช่ไหม?") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showDeleteConfirm = false
+                    onDelete?.invoke()
+                }) {
+                    Text("ลบ", color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("ยกเลิก", color = Color(0xFF757575))
+                }
+            }
+        )
+    }
+
+    // Edit dialog
+    if (showEditDialog) {
+        AlertDialog(
+            onDismissRequest = { showEditDialog = false },
+            title = { Text("แก้ไขชื่อทริป", fontWeight = FontWeight.Bold) },
+            text = {
+                OutlinedTextField(
+                    value = editName,
+                    onValueChange = { editName = it },
+                    label = { Text("ชื่อทริป") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    showEditDialog = false
+                    if (editName.isNotBlank()) onEdit?.invoke(editName)
+                }) {
+                    Text("บันทึก", color = OrangeColor, fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditDialog = false }) {
+                    Text("ยกเลิก", color = Color(0xFF757575))
+                }
+            }
+        )
     }
 }
 
