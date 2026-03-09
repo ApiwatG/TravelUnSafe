@@ -75,7 +75,12 @@ fun TravelApp(
                         onGuideClick  = onNavigateToGuideDetail
 
                     )
-                    NavDestination.Messages  -> PlaceholderScreen("แชท")
+
+                    NavDestination.Notifications -> NotificationScreen(
+                        viewModel = viewModel,
+                        prefs = prefs
+                    )
+
                     NavDestination.Favorites -> FavoritePlaceScreen(
                         viewModel = viewModel,
                         prefs     = prefs

@@ -32,10 +32,10 @@ import androidx.compose.ui.unit.sp
 //  Add more destinations here as the app grows
 // ===================================================
 sealed class NavDestination(val route: String) {
-    object Home     : NavDestination("home")
-    object Messages : NavDestination("messages")
-    object Favorites: NavDestination("favorites")
-    object Profile  : NavDestination("profile")
+    object Home          : NavDestination("home")
+    object Notifications : NavDestination("notifications") // 💡 1. เปลี่ยนชื่อจาก Messages เป็น Notifications
+    object Favorites     : NavDestination("favorites")
+    object Profile       : NavDestination("profile")
 }
 
 // ===================================================
@@ -54,29 +54,15 @@ data class BottomNavItem(
 //  Import this wherever you need the default set
 // ===================================================
 val defaultNavItems = listOf(
-    BottomNavItem(NavDestination.Home,      Icons.Filled.Home,          Icons.Outlined.Home,           "หน้าหลัก"),
-    BottomNavItem(NavDestination.Messages,  Icons.Filled.Email,         Icons.Outlined.Email,          "แชท",   badgeCount = 1),
-    BottomNavItem(NavDestination.Favorites, Icons.Filled.Favorite,      Icons.Outlined.FavoriteBorder, "ถูกใจ"),
-    BottomNavItem(NavDestination.Profile,   Icons.Filled.Person,        Icons.Outlined.Person,         "โปรไฟล์")
+    BottomNavItem(NavDestination.Home,          Icons.Filled.Home,          Icons.Outlined.Home,           "หน้าหลัก"),
+    // 💡 2. เปลี่ยนไอคอนและข้อความเป็น "แจ้งเตือน"
+    BottomNavItem(NavDestination.Notifications, Icons.Filled.Notifications, Icons.Outlined.Notifications,  "แจ้งเตือน", badgeCount = 1),
+    BottomNavItem(NavDestination.Favorites,     Icons.Filled.Favorite,      Icons.Outlined.FavoriteBorder, "ถูกใจ"),
+    BottomNavItem(NavDestination.Profile,       Icons.Filled.Person,        Icons.Outlined.Person,         "โปรไฟล์")
 )
 
 // ===================================================
 //  MAIN BOTTOM NAV BAR COMPOSABLE
-//
-//  HOW TO USE IN ANY SCREEN:
-//
-//  Scaffold(
-//      bottomBar = {
-//          TravelBottomNavBar(
-//              currentDestination = currentDest,
-//              onItemSelected = { currentDest = it },
-//              onFabClick = { showFabMenu = !showFabMenu },
-//              isFabOpen = showFabMenu
-//          )
-//      }
-//  ) { padding ->
-//      // your screen content
-//  }
 // ===================================================
 @Composable
 fun TravelBottomNavBar(
@@ -84,7 +70,7 @@ fun TravelBottomNavBar(
     onItemSelected: (NavDestination) -> Unit,
     onFabClick: () -> Unit,
     isFabOpen: Boolean,
-    items: List<BottomNavItem> = defaultNavItems  // override if you need custom items
+    items: List<BottomNavItem> = defaultNavItems
 ) {
     val skyBlueGradient = Brush.verticalGradient(
         colors = listOf(Color(0xFFB3E5FC), Color(0xFF81D4FA))
@@ -146,20 +132,6 @@ fun TravelBottomNavBar(
 
 // ===================================================
 //  FAB POPUP MENU
-//
-//  HOW TO USE:
-//  Put this in a Box wrapping your Scaffold, so it
-//  floats above the bottom nav:
-//
-//  Box(modifier = Modifier.fillMaxSize()) {
-//      Scaffold(...) { ... }
-//      FabPopupMenu(
-//          visible = showFabMenu,
-//          onDismiss = { showFabMenu = false },
-//          onGuideClick = { ... },
-//          onTravelPlanClick = { ... }
-//      )
-//  }
 // ===================================================
 @Composable
 fun FabPopupMenu(
@@ -173,7 +145,6 @@ fun FabPopupMenu(
         enter = fadeIn(),
         exit = fadeOut()
     ) {
-        // Dimmed backdrop
         Box(
             modifier = Modifier
                 .fillMaxSize()

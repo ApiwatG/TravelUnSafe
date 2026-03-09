@@ -228,6 +228,22 @@ interface TravelAPI {
         @Query("trip_id") tripId: String
     ): List<Itinerary>
 
+    @GET("api/users/{userId}/trip-invitations")
+    suspend fun getTripInvitations(@Path("userId") userId: String): retrofit2.Response<List<TripInvitation>>
+
+    @PUT("api/trips/{tripId}/members/{userId}/accept")
+    suspend fun acceptTripInvitation(
+        @Path("tripId") tripId: String,
+        @Path("userId") userId: String
+    ): retrofit2.Response<ApiResponse>
+
+    // เพิ่มคำสั่งสำหรับปฏิเสธคำเชิญ (ลบคนออกจากทริป)
+    @DELETE("api/trips/{tripId}/members/{userId}")
+    suspend fun deleteMemberFromTrip(
+        @Path("tripId") tripId: String,
+        @Path("userId") userId: String
+    ): retrofit2.Response<ApiResponse>
+
     @DELETE("api/itinerarys/{id}")
     suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
 }

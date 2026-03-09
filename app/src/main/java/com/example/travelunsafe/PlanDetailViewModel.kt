@@ -21,14 +21,15 @@ class PlanDetailViewModel : ViewModel() {
     val totalExpense: Int
         get() = expenseList.sumOf { it.amount }
 
-    fun loadTripDetail(tripId: String) {
+    // 💡 แก้ไข: รับ userId เข้ามาด้วย เพื่อไม่ให้ล็อคตายตัวเป็น U0001
+    fun loadTripDetail(tripId: String, userId: String) {
         viewModelScope.launch {
             isLoading = true
             try { currentTrip    = TripPlanClient.apiService.getTripById(tripId)           } catch (_: Exception) {}
             try { itineraryList  = TripPlanClient.apiService.getItineraryByTrip(tripId)    } catch (_: Exception) { itineraryList  = emptyList() }
             try { expenseList    = TripPlanClient.apiService.getExpensesByTrip(tripId)     } catch (_: Exception) { expenseList    = emptyList() }
             try { availablePlaces = TripPlanClient.apiService.getPlaces()                  } catch (_: Exception) { availablePlaces = emptyList() }
-            try { friendsList    = TripPlanClient.apiService.getFriends("U0001")           } catch (_: Exception) { friendsList    = emptyList() }
+            try { friendsList    = TripPlanClient.apiService.getFriends(userId)            } catch (_: Exception) { friendsList    = emptyList() } // 💡 เปลี่ยนมาใช้ userId จริง
             try { tripMembers    = TripPlanClient.apiService.getTripMembers(tripId)        } catch (_: Exception) { tripMembers    = emptyList() }
             isLoading = false
         }
@@ -83,12 +84,14 @@ class PlanDetailViewModel : ViewModel() {
             } catch (e: Exception) { onError(e.message ?: "Error") }
         }
     }
+
     fun deleteItinerary(tripId: String, itineraryId: String) {
         viewModelScope.launch {
             try {
-                // 💡 เปลี่ยนจาก TravelClient เป็น TripPlanClient
                 val response = TripPlanClient.apiService.deleteItinerary(itineraryId)
-                if (response.isSuccessful) loadTripDetail(tripId)
+                if (response.isSuccessful) {
+                    itineraryList = TripPlanClient.apiService.getItineraryByTrip(tripId)
+                }
             } catch (e: Exception) { e.printStackTrace() }
         }
     }
@@ -96,9 +99,10 @@ class PlanDetailViewModel : ViewModel() {
     fun deleteExpense(tripId: String, expenseId: String) {
         viewModelScope.launch {
             try {
-                // 💡 เปลี่ยนจาก TravelClient เป็น TripPlanClient
                 val response = TripPlanClient.apiService.deleteExpense(expenseId)
-                if (response.isSuccessful) loadTripDetail(tripId)
+                if (response.isSuccessful) {
+                    expenseList = TripPlanClient.apiService.getExpensesByTrip(tripId)
+                }
             } catch (e: Exception) { e.printStackTrace() }
         }
     }

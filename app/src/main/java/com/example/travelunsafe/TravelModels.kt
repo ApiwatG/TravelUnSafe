@@ -317,3 +317,9 @@ data class CreateItineraryRequest(
     val note: String? = null
 )
 
+data class TripInvitation(
+    val trip_id: String,
+    val trip_name: String,
+    val inviter_name: String
+)
+
