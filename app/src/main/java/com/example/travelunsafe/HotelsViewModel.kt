@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class HotelsViewModel : ViewModel() {
@@ -29,11 +30,19 @@ class HotelsViewModel : ViewModel() {
     private val _profileError = MutableStateFlow<String?>(null)
     val profileError: StateFlow<String?> = _profileError
 
-    // ---- Loading ----
-    private val _isLoading = MutableStateFlow(false)
-    val isLoading: StateFlow<Boolean> = _isLoading
+    // ---- Hotels State ----
+    private val _hotels = MutableStateFlow<List<Hotel>>(emptyList())
+    val hotels: StateFlow<List<Hotel>> = _hotels.asStateFlow()
 
-    // ---- Login (email + password) ----
+    // ---- Loading (shared) ----
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
+
+    init {
+        fetchHotels()
+    }
+
+    // ---- Login ----
     fun login(email: String, password: String) {
         viewModelScope.launch {
             _isLoading.value = true
@@ -91,6 +100,21 @@ class HotelsViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _profileError.value = "ไม่สามารถเชื่อมต่อ Server ได้"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
+    // ---- Fetch Hotels ----
+    fun fetchHotels() {
+        viewModelScope.launch {
+            _isLoading.value = true
+            try {
+                val response = TripPlanClient.apiService.getHotels()
+                _hotels.value = response
+            } catch (e: Exception) {
+                e.printStackTrace()
             } finally {
                 _isLoading.value = false
             }

@@ -38,7 +38,7 @@ sealed class Screen(val route: String) {
 fun NavGraph(navController: NavHostController) {
     // ── ViewModels ────────────────────────────────────────
     val travelViewModel: TravelViewModel       = viewModel()
-    val hotelViewModel: HotelViewModel         = viewModel()
+    val hotelViewModel: HotelsViewModel         = viewModel()
     val tripViewModel: TripViewModel           = viewModel()
     val planDetailViewModel: PlanDetailViewModel = viewModel()
 
