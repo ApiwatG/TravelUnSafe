@@ -24,10 +24,11 @@ import java.util.*
 @Composable
 fun CreatePlanScreen(
     viewModel: TripViewModel,
+    prefs: SharedPreferencesManager,
     onStartPlanning: (String) -> Unit
 ) {
     val context = LocalContext.current
-
+    val userId = prefs.getUserId()
     // สถานะการกรอกข้อมูล
     var destination by remember { mutableStateOf("") }
     var selectedProvince by remember { mutableStateOf("") } // ตัวแปรเก็บจังหวัดที่เลือกหรือพิมพ์
@@ -169,7 +170,7 @@ fun CreatePlanScreen(
                     province = selectedProvince,
                     startDateStr = startDate,
                     endDateStr = endDate,
-                    userId = "U0001",
+                    userId = userId,
                     onSuccess = { newTripId ->
                         isLoading = false
                         Toast.makeText(context, "บันทึกทริปสำเร็จ!", Toast.LENGTH_SHORT).show()

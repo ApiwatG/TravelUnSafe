@@ -316,3 +316,4 @@ data class CreateItineraryRequest(
     val end_time: String? = null,
     val note: String? = null
 )
+

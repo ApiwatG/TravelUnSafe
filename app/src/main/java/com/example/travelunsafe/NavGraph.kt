@@ -165,6 +165,7 @@ fun NavGraph(navController: NavHostController) {
         composable(Screen.CreatePlan.route) {
             CreatePlanScreen(
                 viewModel       = tripViewModel,
+                prefs           = prefs,
                 onStartPlanning = { newTripId ->
                     navController.navigate(Screen.PlanDetail.createRoute(newTripId))
                 }

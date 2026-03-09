@@ -530,7 +530,22 @@ class TravelViewModel : ViewModel() {
     // ===================================
     //  GUIDES
     // ===================================
-
+    fun updateTripName(tripId: String, newName: String, userId: String, onSuccess: () -> Unit = {}) {
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.updateTrip(
+                    tripId,
+                    Trip(trip_id = tripId, trip_name = newName, user_id = userId)
+                )
+                if (response.isSuccessful) {
+                    loadProfile(userId)  // refresh profile
+                    onSuccess()
+                }
+            } catch (e: Exception) {
+                errorMessage = "Error: ${e.message}"
+            }
+        }
+    }
     fun loadGuides() {
         viewModelScope.launch {
             try {
