@@ -185,7 +185,7 @@ fun NavGraph(navController: NavHostController) {
             selectedHotel?.let { hotel ->
                 HotelDetailScreen(
                     hotel      = hotel,
-                    tripId     = null,              // ✅ ถ้ามาจากหน้าหลัก ไม่มี tripId
+                    tripId      = selectedTripId,   // ✅ แก้จาก null
                     userId     = prefs.getUserId(), // ✅ ดึง userId จาก SharedPreferences
                     viewModel  = travelViewModel,
                     onBackClick = { navController.popBackStack() }
