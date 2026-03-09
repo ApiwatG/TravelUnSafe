@@ -76,13 +76,16 @@ fun NavGraph(navController: NavHostController) {
         // ── MAIN SHELL ────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
-                viewModel              = travelViewModel,
-                prefs                  = prefs,
-                onNavigateToSearch     = { navController.navigate(Screen.Search.route) },
-                onNavigateToFriends    = { navController.navigate(Screen.Friends.route) },
-                onNavigateToHotels     = { navController.navigate(Screen.HotelList.route) },
-                onNavigateToCreatePlan = { navController.navigate(Screen.CreatePlan.route) },
+                viewModel               = travelViewModel,
+                prefs                   = prefs,
+                onNavigateToSearch      = { navController.navigate(Screen.Search.route) },
+                onNavigateToFriends     = { navController.navigate(Screen.Friends.route) },
+                onNavigateToHotels      = { navController.navigate(Screen.HotelList.route) },
+                onNavigateToCreatePlan  = { navController.navigate(Screen.CreatePlan.route) },
                 onNavigateToCreateGuide = { navController.navigate(Screen.CreateGuide.route) },
+                onNavigateToGuideDetail = { guideId ->          // ✅ เพิ่ม
+                    navController.navigate(Screen.GuideDetail.createRoute(guideId))
+                },
                 onLogout = {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(0) { inclusive = true }

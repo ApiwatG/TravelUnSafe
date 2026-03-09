@@ -35,7 +35,8 @@ fun HomeScreen(
     viewModel: TravelViewModel,
     prefs: SharedPreferencesManager,
     onSearchClick: () -> Unit = {},
-    onHotelsClick: () -> Unit = {}
+    onHotelsClick: () -> Unit = {},
+    onGuideClick: (String) -> Unit = {}
 ) {
     val username = prefs.getUsername().ifBlank { "นักท่องเที่ยว" }
 
@@ -80,7 +81,7 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(guides, key = { it.guide_id }) { guide ->
-                FeaturedGuideCard(guide = guide)
+                FeaturedGuideCard(guide = guide, onClick = { onGuideClick(guide.guide_id) })
             }
             if (guides.isEmpty()) {
                 item { EmptyRowCard("ยังไม่มีคู่มือ") }
@@ -165,7 +166,7 @@ fun FeaturedPlaceCard(place: Place) {
             // ✅ FIX: Load real image if available
             if (!place.image_url.isNullOrBlank()) {
                 val fullUrl = if (place.image_url.startsWith("http")) place.image_url
-                else "http://192.168.1.11:3000/${place.image_url}"
+                else "http://10.0.2.2:3000/${place.image_url}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = place.place_name,
@@ -205,11 +206,11 @@ private val guideGradients = listOf(
 )
 
 @Composable
-fun FeaturedGuideCard(guide: GuideModel) {
+fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
     val gradient = guideGradients[(guide.guide_id.hashCode() and 0x7FFFFFFF) % guideGradients.size]
 
     Column(
-        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF8F8F8)).clickable { }
+        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF8F8F8)).clickable { onClick() }
     ) {
         Box(
             modifier = Modifier.fillMaxWidth().height(130.dp).clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
@@ -218,7 +219,7 @@ fun FeaturedGuideCard(guide: GuideModel) {
             // ✅ FIX: Load real guide image if available
             if (!guide.image_guide.isNullOrBlank()) {
                 val fullUrl = if (guide.image_guide.startsWith("http")) guide.image_guide
-                else "http://192.168.1.11:3000/${guide.image_guide}"
+                else "http://10.0.2.2:3000/${guide.image_guide}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = guide.guide_name,

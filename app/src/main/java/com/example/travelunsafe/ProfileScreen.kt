@@ -133,7 +133,7 @@ fun ProfileScreen(
                         android.util.Log.d("PROFILE_DEBUG", "image_profile = [$imageUrl]")
                         android.util.Log.d("PROFILE_DEBUG", "full profile user = ${profile?.user}")
                         if (!imageUrl.isNullOrBlank()) {
-                            val fullUrl = "http://192.168.1.11:3000/$imageUrl"
+                            val fullUrl = "http://10.0.2.2:3000/$imageUrl"
                             AsyncImage(
                                 model = fullUrl,
                                 contentDescription = "Profile Image",

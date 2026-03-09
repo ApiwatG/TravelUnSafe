@@ -44,6 +44,7 @@ fun TravelApp(
     onNavigateToHotels: () -> Unit,
     onNavigateToCreatePlan: () -> Unit,
     onNavigateToCreateGuide: () -> Unit,   // ← NEW
+    onNavigateToGuideDetail: (String) -> Unit,
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -70,7 +71,9 @@ fun TravelApp(
                         viewModel      = viewModel,
                         prefs          = prefs,
                         onSearchClick  = onNavigateToSearch,
-                        onHotelsClick  = onNavigateToHotels
+                        onHotelsClick  = onNavigateToHotels,
+                        onGuideClick  = onNavigateToGuideDetail
+
                     )
                     NavDestination.Messages  -> PlaceholderScreen("แชท")
                     NavDestination.Favorites -> FavoritePlaceScreen(

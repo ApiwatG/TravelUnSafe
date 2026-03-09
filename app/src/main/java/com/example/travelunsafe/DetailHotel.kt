@@ -41,7 +41,7 @@ fun HotelDetailScreen(
     var isBooking by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val baseUrl = "http://192.168.1.11:3000/images/"
+    val baseUrl = "http://10.0.2.2:3000/images/"
 
     Scaffold(
         topBar = {
