@@ -212,6 +212,30 @@ data class GuideModel(
     val createdAt: String? = null
 )
 
+// ===== GUIDE POST =====
+data class GuidePost(
+    val post_id: String,
+    val guide_id: String,
+    val user_id: String,
+    val username: String,
+    val image_profile: String? = null,
+    val title: String,
+    val detail: String? = null,
+    val createdAt: String? = null
+)
+
+data class CreateGuidePostRequest(
+    val user_id: String,
+    val title: String,
+    val detail: String? = null
+)
+
+data class CreateGuidePostResponse(
+    val error: Boolean,
+    val message: String,
+    val post_id: String? = null
+)
+
 // ===== PROFILE SUMMARY (returned by /profile/:id) =====
 data class ProfileStats(
     val tripCount: Int = 0,
@@ -324,4 +348,3 @@ data class TripInvitation(
     val trip_name: String,
     val inviter_name: String
 )
-

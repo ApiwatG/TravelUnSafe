@@ -60,6 +60,17 @@ interface TravelAPI {
     @GET("guides")
     suspend fun getGuides(): List<GuideModel>
 
+    @GET("guides/{guideId}/posts")
+    suspend fun getGuidePosts(
+        @Path("guideId") guideId: String
+    ): List<GuidePost>
+
+    @POST("guides/{guideId}/posts")
+    suspend fun createGuidePost(
+        @Path("guideId") guideId: String,
+        @Body body: CreateGuidePostRequest
+    ): Response<CreateGuidePostResponse>
+
     // ===================================
     //  USERS
     // ===================================

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -15,31 +16,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import coil.compose.AsyncImage
 
-// ─────────────────────────────────────────────────────────────
-//  Constants
-// ─────────────────────────────────────────────────────────────
 private val Orange     = Color(0xFFFFA726)
 private val OrangeDeep = Color(0xFFF57C00)
 private val TextPrim   = Color(0xFF212121)
 private val TextSec    = Color(0xFF757575)
-private val BgCard     = Color(0xFFFAFAFA)
 
 // ─────────────────────────────────────────────────────────────
-//  Root composable
+//  Root
 // ─────────────────────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun GuideDetailComposable(
     uiState: GuideDetailUiState,
+    prefs: SharedPreferencesManager,
     onBack: () -> Unit
 ) {
+    var showPostDialog by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -54,58 +56,120 @@ fun GuideDetailComposable(
                 },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Default.ArrowBack,
-                            contentDescription = "Back",
-                            modifier = Modifier.size(22.dp)
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
                     }
                 },
-                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                    containerColor = Color.White
-                )
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
             )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showPostDialog = true },
+                containerColor = Orange,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "เพิ่มโพสต์", modifier = Modifier.size(28.dp))
+            }
         },
         containerColor = Color(0xFFF5F5F5)
     ) { innerPadding ->
-
         when {
             uiState.isLoading -> LoadingView(innerPadding)
             uiState.error != null -> ErrorView(uiState.error, innerPadding)
-            else -> GuideContent(uiState, innerPadding)
+            else -> GuideContent(uiState = uiState, padding = innerPadding)
         }
+    }
+
+    if (showPostDialog) {
+        PostDialog(
+            onDismiss = { showPostDialog = false },
+            onPost    = { title, detail ->
+                showPostDialog = false
+                // caller handles createPost via viewModel — pass up via callback if needed
+            }
+        )
     }
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Loading
+//  Overload that accepts onPost callback (wired to ViewModel)
+// ─────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GuideDetailScreen(
+    uiState: GuideDetailUiState,
+    prefs: SharedPreferencesManager,
+    onBack: () -> Unit,
+    onPost: (title: String, detail: String?) -> Unit
+) {
+    var showPostDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = uiState.title.ifBlank { "คู่มือท่องเที่ยว" },
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showPostDialog = true },
+                containerColor = Orange,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "เพิ่มโพสต์", modifier = Modifier.size(28.dp))
+            }
+        },
+        containerColor = Color(0xFFF5F5F5)
+    ) { innerPadding ->
+        when {
+            uiState.isLoading -> LoadingView(innerPadding)
+            uiState.error != null -> ErrorView(uiState.error, innerPadding)
+            else -> GuideContent(uiState = uiState, padding = innerPadding)
+        }
+    }
+
+    if (showPostDialog) {
+        PostDialog(
+            onDismiss = { showPostDialog = false },
+            onPost    = { title, detail ->
+                showPostDialog = false
+                onPost(title, detail)
+            }
+        )
+    }
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Loading / Error
 // ─────────────────────────────────────────────────────────────
 @Composable
 private fun LoadingView(padding: PaddingValues) {
-    Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
         CircularProgressIndicator(color = Orange)
     }
 }
 
-// ─────────────────────────────────────────────────────────────
-//  Error
-// ─────────────────────────────────────────────────────────────
 @Composable
 private fun ErrorView(message: String, padding: PaddingValues) {
-    Box(
-        modifier = Modifier.fillMaxSize().padding(padding),
-        contentAlignment = Alignment.Center
-    ) {
+    Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.ErrorOutline,
-                contentDescription = null,
-                tint = Color(0xFFE57373),
-                modifier = Modifier.size(52.dp)
-            )
+            Icon(Icons.Default.ErrorOutline, null, tint = Color(0xFFE57373), modifier = Modifier.size(52.dp))
             Spacer(Modifier.height(12.dp))
             Text(message, color = TextSec, fontSize = 14.sp)
         }
@@ -116,36 +180,46 @@ private fun ErrorView(message: String, padding: PaddingValues) {
 //  Main content
 // ─────────────────────────────────────────────────────────────
 @Composable
-private fun GuideContent(
-    uiState: GuideDetailUiState,
-    padding: PaddingValues
-) {
+private fun GuideContent(uiState: GuideDetailUiState, padding: PaddingValues) {
     LazyColumn(
-        modifier = Modifier
-            .padding(padding)
-            .fillMaxSize(),
+        modifier = Modifier.padding(padding).fillMaxSize(),
         verticalArrangement = Arrangement.spacedBy(0.dp)
     ) {
-        // ── Hero image / banner ───────────────────────────
         item { GuideBannerSection(uiState) }
-
-        // ── Author card ───────────────────────────────────
         item { GuideAuthorCard(uiState.author) }
 
-        // ── Description card ──────────────────────────────
         if (!uiState.description.isNullOrBlank()) {
             item { GuideDescriptionCard(uiState.description) }
         }
 
-        // ── Itinerary days (if any) ───────────────────────
-        if (uiState.days.isNotEmpty()) {
-            item { GuideSectionTitle("แผนการเดินทาง", Icons.Default.Map) }
-            uiState.days.forEach { day ->
-                item { GuideDayCard(day) }
+        // ── Posts section ──────────────────────────────
+        item {
+            GuideSectionTitle("โพสต์จากผู้ใช้", Icons.Default.Forum)
+        }
+
+        if (uiState.isPostLoading) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = Orange, modifier = Modifier.size(28.dp))
+                }
+            }
+        } else if (uiState.posts.isEmpty()) {
+            item {
+                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text("💬", fontSize = 36.sp)
+                        Spacer(Modifier.height(8.dp))
+                        Text("ยังไม่มีโพสต์ กดปุ่ม + เพื่อเริ่มแรก!", color = TextSec, fontSize = 13.sp)
+                    }
+                }
+            }
+        } else {
+            items(uiState.posts, key = { it.post_id }) { post ->
+                GuidePostCard(post)
             }
         }
 
-        item { Spacer(Modifier.height(32.dp)) }
+        item { Spacer(Modifier.height(80.dp)) }
     }
 }
 
@@ -154,87 +228,25 @@ private fun GuideContent(
 // ─────────────────────────────────────────────────────────────
 @Composable
 private fun GuideBannerSection(uiState: GuideDetailUiState) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(240.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
         if (!uiState.imageUrl.isNullOrBlank()) {
-            // Try to build full URL if relative path
-            val imageUrl = if (uiState.imageUrl.startsWith("http")) {
-                uiState.imageUrl
-            } else {
-                "http://10.0.2.2:3000/${uiState.imageUrl}"
-            }
-            AsyncImage(
-                model = imageUrl,
-                contentDescription = uiState.title,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize()
-            )
+            val imageUrl = if (uiState.imageUrl.startsWith("http")) uiState.imageUrl
+            else "http://10.0.2.2:3000/${uiState.imageUrl}"
+            AsyncImage(model = imageUrl, contentDescription = uiState.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
-            // Placeholder gradient when no image
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .background(
-                        Brush.linearGradient(
-                            colors = listOf(Orange, OrangeDeep)
-                        )
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    Icons.Default.MenuBook,
-                    contentDescription = null,
-                    tint = Color.White.copy(alpha = 0.4f),
-                    modifier = Modifier.size(80.dp)
-                )
+            Box(modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Orange, OrangeDeep))), contentAlignment = Alignment.Center) {
+                Icon(Icons.Default.MenuBook, null, tint = Color.White.copy(alpha = 0.4f), modifier = Modifier.size(80.dp))
             }
         }
-
-        // Gradient overlay at bottom for title legibility
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)),
-                        startY = 120f
-                    )
-                )
-        )
-
-        // Title + date overlay
-        Column(
-            modifier = Modifier
-                .align(Alignment.BottomStart)
-                .padding(16.dp)
-        ) {
-            Text(
-                text = uiState.title,
-                color = Color.White,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis
-            )
+        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color.Black.copy(alpha = 0.55f)), startY = 120f)))
+        Column(modifier = Modifier.align(Alignment.BottomStart).padding(16.dp)) {
+            Text(uiState.title, color = Color.White, fontSize = 22.sp, fontWeight = FontWeight.Bold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (!uiState.createdAt.isNullOrBlank()) {
-                val shortDate = uiState.createdAt.take(10)
                 Spacer(Modifier.height(4.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = Color.White.copy(alpha = 0.8f),
-                        modifier = Modifier.size(13.dp)
-                    )
+                    Icon(Icons.Default.CalendarToday, null, tint = Color.White.copy(alpha = 0.8f), modifier = Modifier.size(13.dp))
                     Spacer(Modifier.width(4.dp))
-                    Text(
-                        text = shortDate,
-                        color = Color.White.copy(alpha = 0.85f),
-                        fontSize = 12.sp
-                    )
+                    Text(uiState.createdAt.take(10), color = Color.White.copy(alpha = 0.85f), fontSize = 12.sp)
                 }
             }
         }
@@ -247,73 +259,32 @@ private fun GuideBannerSection(uiState: GuideDetailUiState) {
 @Composable
 private fun GuideAuthorCard(author: GuideAuthor) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 10.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            // Avatar
+        Row(modifier = Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
             if (!author.image.isNullOrBlank()) {
-                val imgUrl = if (author.image.startsWith("http")) author.image
-                else "http://10.0.2.2:3000/${author.image}"
-                AsyncImage(
-                    model = imgUrl,
-                    contentDescription = author.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                )
+                val imgUrl = if (author.image.startsWith("http")) author.image else "http://10.0.2.2:3000/${author.image}"
+                AsyncImage(model = imgUrl, contentDescription = author.name, contentScale = ContentScale.Crop, modifier = Modifier.size(46.dp).clip(CircleShape))
             } else {
-                Box(
-                    modifier = Modifier
-                        .size(46.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFCFD8DC)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.Person,
-                        contentDescription = null,
-                        tint = Color(0xFF607D8B),
-                        modifier = Modifier.size(26.dp)
-                    )
+                Box(modifier = Modifier.size(46.dp).clip(CircleShape).background(Color(0xFFCFD8DC)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.Person, null, tint = Color(0xFF607D8B), modifier = Modifier.size(26.dp))
                 }
             }
-
             Spacer(Modifier.width(12.dp))
-
             Column(modifier = Modifier.weight(1f)) {
                 Text("ผู้เขียน", fontSize = 11.sp, color = TextSec)
-                Text(
-                    text = author.name,
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    color = TextPrim
-                )
+                Text(author.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
             }
-
-            // Follow button
             Button(
-                onClick = { /* TODO: follow */ },
+                onClick = { },
                 shape = RoundedCornerShape(20.dp),
                 colors = ButtonDefaults.buttonColors(containerColor = Orange),
                 contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
             ) {
-                Icon(
-                    Icons.Default.PersonAdd,
-                    contentDescription = null,
-                    modifier = Modifier.size(15.dp),
-                    tint = Color.White
-                )
+                Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(15.dp), tint = Color.White)
                 Spacer(Modifier.width(4.dp))
                 Text("ติดตาม", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
             }
@@ -327,39 +298,21 @@ private fun GuideAuthorCard(author: GuideAuthor) {
 @Composable
 private fun GuideDescriptionCard(description: String) {
     var expanded by remember { mutableStateOf(false) }
-    val needsToggle = true
+    val needsToggle = description.length > 50
 
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 4.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(32.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Orange.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        Icons.Default.MenuBook,
-                        contentDescription = null,
-                        tint = Orange,
-                        modifier = Modifier.size(18.dp)
-                    )
+                Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(Orange.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                    Icon(Icons.Default.MenuBook, null, tint = Orange, modifier = Modifier.size(18.dp))
                 }
                 Spacer(Modifier.width(10.dp))
-                Text(
-                    text = "รายละเอียด",
-                    fontSize = 15.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = TextPrim
-                )
+                Text("รายละเอียด", fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrim)
             }
             Spacer(Modifier.height(10.dp))
             Text(
@@ -385,24 +338,13 @@ private fun GuideDescriptionCard(description: String) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Section title row (for Itinerary heading)
+//  Section title
 // ─────────────────────────────────────────────────────────────
 @Composable
-private fun GuideSectionTitle(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .clip(RoundedCornerShape(8.dp))
-                .background(Orange.copy(alpha = 0.15f)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(icon, contentDescription = null, tint = Orange, modifier = Modifier.size(18.dp))
+private fun GuideSectionTitle(title: String, icon: ImageVector) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Box(modifier = Modifier.size(32.dp).clip(RoundedCornerShape(8.dp)).background(Orange.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+            Icon(icon, null, tint = Orange, modifier = Modifier.size(18.dp))
         }
         Spacer(Modifier.width(10.dp))
         Text(title, fontSize = 16.sp, fontWeight = FontWeight.Bold, color = TextPrim)
@@ -410,55 +352,138 @@ private fun GuideSectionTitle(title: String, icon: androidx.compose.ui.graphics.
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Day card (itinerary)
+//  Post card
 // ─────────────────────────────────────────────────────────────
 @Composable
-private fun GuideDayCard(day: DaySection) {
+private fun GuidePostCard(post: GuidePost) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 5.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(2.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Day header
+            // Author row
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(34.dp)
-                        .clip(CircleShape)
-                        .background(Orange),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = "${day.dayNumber}",
-                        color = Color.White,
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp
-                    )
+                if (!post.image_profile.isNullOrBlank()) {
+                    val imgUrl = if (post.image_profile.startsWith("http")) post.image_profile
+                    else "http://10.0.2.2:3000/${post.image_profile}"
+                    AsyncImage(model = imgUrl, contentDescription = post.username, contentScale = ContentScale.Crop, modifier = Modifier.size(36.dp).clip(CircleShape))
+                } else {
+                    Box(modifier = Modifier.size(36.dp).clip(CircleShape).background(Color(0xFFCFD8DC)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Person, null, tint = Color(0xFF607D8B), modifier = Modifier.size(20.dp))
+                    }
                 }
                 Spacer(Modifier.width(10.dp))
                 Column {
-                    Text(
-                        text = "วันที่ ${day.dayNumber}",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        color = TextPrim
-                    )
-                    if (!day.date.isNullOrBlank()) {
-                        Text(day.date, fontSize = 12.sp, color = TextSec)
+                    Text(post.username, fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
+                    if (!post.createdAt.isNullOrBlank()) {
+                        Text(post.createdAt.take(10), fontSize = 11.sp, color = TextSec)
                     }
                 }
             }
+            Spacer(Modifier.height(10.dp))
+            HorizontalDivider(color = Color(0xFFF0F0F0))
+            Spacer(Modifier.height(10.dp))
+            // Title
+            Text(post.title, fontSize = 15.sp, fontWeight = FontWeight.Bold, color = TextPrim)
+            // Detail
+            if (!post.detail.isNullOrBlank()) {
+                Spacer(Modifier.height(6.dp))
+                Text(post.detail, fontSize = 13.sp, color = Color(0xFF424242), lineHeight = 20.sp)
+            }
+        }
+    }
+}
 
-            if (day.places.isNotEmpty()) {
-                Spacer(Modifier.height(12.dp))
-                HorizontalDivider(color = Color(0xFFF0F0F0))
-                Spacer(Modifier.height(8.dp))
-                day.places.forEachIndexed { index, place ->
-                    GuidePlaceRow(place = place, isLast = index == day.places.lastIndex)
+// ─────────────────────────────────────────────────────────────
+//  Post dialog
+// ─────────────────────────────────────────────────────────────
+@Composable
+fun PostDialog(
+    onDismiss: () -> Unit,
+    onPost: (title: String, detail: String?) -> Unit
+) {
+    var title  by remember { mutableStateOf("") }
+    var detail by remember { mutableStateOf("") }
+    var titleError by remember { mutableStateOf(false) }
+
+    Dialog(onDismissRequest = onDismiss) {
+        Card(
+            shape  = RoundedCornerShape(20.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(8.dp)
+        ) {
+            Column(modifier = Modifier.padding(24.dp)) {
+                // Header
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(10.dp)).background(Orange.copy(alpha = 0.15f)), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Create, null, tint = Orange, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text("เขียนโพสต์", fontSize = 17.sp, fontWeight = FontWeight.Bold, color = TextPrim)
+                    Spacer(Modifier.weight(1f))
+                    IconButton(onClick = onDismiss, modifier = Modifier.size(28.dp)) {
+                        Icon(Icons.Default.Close, null, tint = TextSec, modifier = Modifier.size(18.dp))
+                    }
+                }
+
+                Spacer(Modifier.height(20.dp))
+
+                // Title field
+                Text("หัวข้อ *", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = title,
+                    onValueChange = { title = it; titleError = false },
+                    placeholder = { Text("ชื่อหัวข้อ...", color = TextSec) },
+                    isError = titleError,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = Orange,
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    ),
+                    textStyle = androidx.compose.ui.text.TextStyle(fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                )
+                if (titleError) {
+                    Text("กรุณากรอกหัวข้อ", fontSize = 11.sp, color = Color(0xFFE53935), modifier = Modifier.padding(start = 4.dp, top = 2.dp))
+                }
+
+                Spacer(Modifier.height(14.dp))
+
+                // Detail field
+                Text("รายละเอียด", fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = detail,
+                    onValueChange = { detail = it },
+                    placeholder = { Text("เพิ่มรายละเอียด (ถ้ามี)...", color = TextSec) },
+                    modifier = Modifier.fillMaxWidth().height(120.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor   = Orange,
+                        unfocusedBorderColor = Color(0xFFE0E0E0)
+                    ),
+                    maxLines = 6
+                )
+
+                Spacer(Modifier.height(20.dp))
+
+                // Post button
+                Button(
+                    onClick = {
+                        if (title.isBlank()) { titleError = true; return@Button }
+                        onPost(title.trim(), detail.trim().ifBlank { null })
+                    },
+                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Orange)
+                ) {
+                    Icon(Icons.Default.Send, null, modifier = Modifier.size(18.dp), tint = Color.White)
+                    Spacer(Modifier.width(8.dp))
+                    Text("โพสต์", fontWeight = FontWeight.Bold, fontSize = 15.sp, color = Color.White)
                 }
             }
         }
@@ -466,44 +491,19 @@ private fun GuideDayCard(day: DaySection) {
 }
 
 // ─────────────────────────────────────────────────────────────
-//  Place row inside day card
+//  Itinerary helpers (kept for future use)
 // ─────────────────────────────────────────────────────────────
 @Composable
 fun GuidePlaceRow(place: PlaceItem, isLast: Boolean = false) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 6.dp),
-        verticalAlignment = Alignment.Top
-    ) {
-        // Timeline
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), verticalAlignment = Alignment.Top) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(
-                modifier = Modifier
-                    .size(10.dp)
-                    .clip(CircleShape)
-                    .background(Color(0xFF4285F4))
-            )
-            if (!isLast) {
-                Box(
-                    modifier = Modifier
-                        .width(2.dp)
-                        .height(36.dp)
-                        .background(Color(0xFFE0E0E0))
-                )
-            }
+            Box(modifier = Modifier.size(10.dp).clip(CircleShape).background(Color(0xFF4285F4)))
+            if (!isLast) Box(modifier = Modifier.width(2.dp).height(36.dp).background(Color(0xFFE0E0E0)))
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = place.name,
-                fontSize = 14.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = TextPrim
-            )
-            if (!place.location.isNullOrBlank()) {
-                Text(place.location, fontSize = 12.sp, color = TextSec)
-            }
+            Text(place.name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
+            if (!place.location.isNullOrBlank()) Text(place.location, fontSize = 12.sp, color = TextSec)
             val timeText = buildString {
                 if (!place.startTime.isNullOrBlank()) append(place.startTime)
                 if (!place.endTime.isNullOrBlank()) append(" – ${place.endTime}")
@@ -511,24 +511,14 @@ fun GuidePlaceRow(place: PlaceItem, isLast: Boolean = false) {
             if (timeText.isNotBlank()) {
                 Spacer(Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        Icons.Default.Schedule,
-                        contentDescription = null,
-                        tint = TextSec,
-                        modifier = Modifier.size(12.dp)
-                    )
+                    Icon(Icons.Default.Schedule, null, tint = TextSec, modifier = Modifier.size(12.dp))
                     Spacer(Modifier.width(3.dp))
                     Text(timeText, fontSize = 12.sp, color = TextSec)
                 }
             }
             if (!place.note.isNullOrBlank()) {
                 Spacer(Modifier.height(3.dp))
-                Text(
-                    text = place.note,
-                    fontSize = 13.sp,
-                    color = Color(0xFF616161),
-                    lineHeight = 18.sp
-                )
+                Text(place.note, fontSize = 13.sp, color = Color(0xFF616161), lineHeight = 18.sp)
             }
         }
     }

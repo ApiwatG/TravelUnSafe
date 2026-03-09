@@ -208,7 +208,7 @@ fun NavGraph(navController: NavHostController) {
                 onBack             = { navController.popBackStack() },
                 onNavigateToHotels = { province, tripIdArg -> // 💡 ใส่ 2 ตัวแปร
 
-                        val encoded = java.net.URLEncoder.encode(province, "UTF-8")
+                    val encoded = java.net.URLEncoder.encode(province, "UTF-8")
                     navController.navigate(Screen.HotelListFromPlan.createRoute(encoded, tripId))
 
                 }
@@ -233,9 +233,19 @@ fun NavGraph(navController: NavHostController) {
             if (guide != null) {
                 val guideViewModel: GuideViewModel = viewModel()
                 LaunchedEffect(guideId) { guideViewModel.loadGuide(guide) }
-                GuideDetailComposable(
+                GuideDetailScreen(
                     uiState = guideViewModel.uiState,
-                    onBack  = { navController.popBackStack() }
+                    prefs   = prefs,
+                    onBack  = { navController.popBackStack() },
+                    onPost  = { title, detail ->
+                        guideViewModel.createPost(
+                            userId    = prefs.getUserId(),
+                            title     = title,
+                            detail    = detail,
+                            onSuccess = {},
+                            onError   = {}
+                        )
+                    }
                 )
             }
         }
@@ -260,10 +270,10 @@ fun NavGraph(navController: NavHostController) {
 
             LaunchedEffect(province) {
                 if (province.isBlank()) {
-                hotelViewModel.searchHotels("")
-            } else {
-                hotelViewModel.setInitialProvince(province)
-            }
+                    hotelViewModel.searchHotels("")
+                } else {
+                    hotelViewModel.setInitialProvince(province)
+                }
             }
 
             ListHotelScreen(
