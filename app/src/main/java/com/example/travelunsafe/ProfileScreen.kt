@@ -58,7 +58,8 @@ fun ProfileScreen(
     prefs: SharedPreferencesManager? = null,
     onLogout: (() -> Unit)? = null,
     onFriendsClick: (() -> Unit)? = null,
-    onNavigateToPlanDetail: ((String) -> Unit)? = null   // ← NEW
+    onNavigateToPlanDetail: ((String) -> Unit)? = null,
+    onEditGuide: ((GuideModel) -> Unit)? = null// ← NEW
 ) {
     val context = LocalContext.current
     val localPrefs = prefs ?: remember { SharedPreferencesManager(context) }
@@ -207,7 +208,11 @@ fun ProfileScreen(
                     userId                 = userId,
                     onNavigateToPlanDetail = onNavigateToPlanDetail
                 )
-                1 -> GuideContent(guides = profile?.guides ?: emptyList())
+                1 -> GuideContent(guides = profile?.guides ?: emptyList(),
+                    viewModel   = viewModel,        // ✅ เพิ่ม
+                    userId      = userId,           // ✅ เพิ่ม
+                    onEditGuide = onEditGuide )
+
             }
         }
 
@@ -464,24 +469,42 @@ fun ProfileTripCard(
 
 // ===== TAB 2: คู่มือ =====
 @Composable
-fun GuideContent(guides: List<GuideModel> = emptyList()) {
+fun GuideContent(
+    guides: List<GuideModel>                   = emptyList(),
+    viewModel: TravelViewModel?                = null,
+    userId: String                             = "",
+    onEditGuide: ((GuideModel) -> Unit)?       = null   // ✅ เพิ่ม
+) {
     if (guides.isEmpty()) {
         EmptyStateContent(
-            emoji       = "📖",
-            title       = "ยังไม่มีคู่มือในระบบ",
-            subtitle    = "สร้างคู่มือการท่องเที่ยวของคุณ",
-            buttonText  = "สร้างคู่มือ",
-            onButtonClick = { }
+            emoji = "📖", title = "ยังไม่มีคู่มือในระบบ",
+            subtitle = "สร้างคู่มือการท่องเที่ยวของคุณ",
+            buttonText = "สร้างคู่มือ", onButtonClick = { }
         )
     } else {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            guides.forEach { guide -> ProfileGuideCard(guide = guide) }
+            guides.forEach { guide ->
+                ProfileGuideCard(
+                    guide    = guide,
+                    onEdit   = { onEditGuide?.invoke(guide) },
+                    onDelete = {
+                        viewModel?.deleteGuide(guide.guide_id, userId)
+                    }
+                )
+            }
         }
     }
 }
 
 @Composable
-fun ProfileGuideCard(guide: GuideModel) {
+fun ProfileGuideCard(
+    guide: GuideModel,
+    onEdit: (() -> Unit)?   = null,
+    onDelete: (() -> Unit)? = null
+) {
+    var showMenu          by remember { mutableStateOf(false) }
+    var showDeleteConfirm by remember { mutableStateOf(false) }
+
     Row(
         modifier          = Modifier
             .fillMaxWidth()
@@ -491,26 +514,56 @@ fun ProfileGuideCard(guide: GuideModel) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier         = Modifier
-                .size(52.dp)
-                .clip(RoundedCornerShape(10.dp))
+            modifier         = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp))
                 .background(Brush.linearGradient(listOf(Color(0xFFEF9A9A), Color(0xFFE53935)))),
             contentAlignment = Alignment.Center
         ) { Icon(Icons.Default.MenuBook, null, tint = Color.White, modifier = Modifier.size(26.dp)) }
         Spacer(modifier = Modifier.width(12.dp))
-        Column {
-            Text(
-                text       = guide.guide_name,
-                fontSize   = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color      = Color(0xFF212121),
-                maxLines   = 1,
-                overflow   = TextOverflow.Ellipsis
-            )
-            if (!guide.provinces_name.isNullOrBlank()) {
-                Text(text = guide.provinces_name, fontSize = 12.sp, color = Color(0xFF757575))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(guide.guide_name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF212121), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (!guide.guide_detail.isNullOrBlank()) {
+                Text(guide.guide_detail, fontSize = 12.sp, color = Color(0xFF757575),
+                    maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
+
+        // ✅ 3-dot menu
+        Box {
+            IconButton(onClick = { showMenu = true }) {
+                Icon(Icons.Default.MoreVert, "More", tint = Color(0xFF757575), modifier = Modifier.size(20.dp))
+            }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenuItem(
+                    text        = { Text("แก้ไขไกด์") },
+                    onClick     = { showMenu = false; onEdit?.invoke() },
+                    leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color(0xFF42A5F5)) }
+                )
+                DropdownMenuItem(
+                    text        = { Text("ลบไกด์", color = Color(0xFFE53935)) },
+                    onClick     = { showMenu = false; showDeleteConfirm = true },
+                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFE53935)) }
+                )
+            }
+        }
+    }
+
+    if (showDeleteConfirm) {
+        AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title   = { Text("ลบไกด์?", fontWeight = FontWeight.Bold) },
+            text    = { Text("คุณต้องการลบ \"${guide.guide_name}\" ใช่ไหม?") },
+            confirmButton = {
+                TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
+                    Text("ลบ", color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("ยกเลิก", color = Color(0xFF757575))
+                }
+            }
+        )
     }
 }
 

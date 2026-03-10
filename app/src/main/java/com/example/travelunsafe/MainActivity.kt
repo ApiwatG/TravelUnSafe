@@ -38,7 +38,8 @@ fun TravelApp(
     onNavigateToCreatePlan: () -> Unit,
     onNavigateToCreateGuide: () -> Unit,
     onNavigateToGuideDetail: (String) -> Unit,
-    onNavigateToPlanDetail: (String) -> Unit,   // ← NEW
+    onNavigateToPlanDetail: (String) -> Unit,
+    onEditGuide: (GuideModel) -> Unit = {}, // ← NEW
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -87,7 +88,8 @@ fun TravelApp(
                             onLogout()
                         },
                         onFriendsClick         = onNavigateToFriends,
-                        onNavigateToPlanDetail = onNavigateToPlanDetail   // ← WIRED
+                        onNavigateToPlanDetail = onNavigateToPlanDetail,
+                        onEditGuide            = onEditGuide // ← WIRED
                     )
                 }
             }

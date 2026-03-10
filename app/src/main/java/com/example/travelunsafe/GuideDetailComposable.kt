@@ -374,7 +374,7 @@ private fun GuideBannerSection(uiState: GuideDetailUiState) {
     Box(modifier = Modifier.fillMaxWidth().height(240.dp)) {
         if (!uiState.imageUrl.isNullOrBlank()) {
             val imageUrl = if (uiState.imageUrl.startsWith("http")) uiState.imageUrl
-            else "http://10.0.2.2:3000/${uiState.imageUrl}"
+            else "http://192.168.1.11:3000/${uiState.imageUrl}"
             AsyncImage(model = imageUrl, contentDescription = uiState.title, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
         } else {
             Box(modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Orange, OrangeDeep))), contentAlignment = Alignment.Center) {

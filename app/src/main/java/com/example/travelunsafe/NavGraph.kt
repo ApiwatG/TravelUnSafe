@@ -9,7 +9,6 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 
-// ===== SCREEN ROUTES =====
 sealed class Screen(val route: String) {
     object Login       : Screen("login")
     object Register    : Screen("register")
@@ -35,6 +34,10 @@ sealed class Screen(val route: String) {
     object CreateGuide : Screen("create_guide")
     object GuideDetail : Screen("guide_detail/{guideId}") {
         fun createRoute(guideId: String) = "guide_detail/$guideId"
+    }
+
+    object EditGuide : Screen("edit_guide/{guideId}") {
+        fun createRoute(guideId: String) = "edit_guide/$guideId"
     }
 }
 
@@ -79,7 +82,7 @@ fun NavGraph(navController: NavHostController) {
             )
         }
 
-        // ── MAIN SHELL ────────────────────────────────────
+        // ── MAIN ───────────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
                 viewModel               = travelViewModel,
@@ -207,19 +210,30 @@ fun NavGraph(navController: NavHostController) {
 
         // ── PLAN DETAIL ───────────────────────────────────
         composable(
-            route     = "plan_detail/{tripId}",
-            arguments = listOf(navArgument("tripId") { type = NavType.StringType })
+            route = Screen.PlanDetail.route,
+            arguments = listOf(
+                navArgument("tripId") { type = NavType.StringType }
+            )
         ) { backStackEntry ->
             val tripId = backStackEntry.arguments?.getString("tripId") ?: ""
 
             PlanDetailScreen(
-                viewModel          = planDetailViewModel,
-                tripId             = tripId,
-                onBack             = { navController.popBackStack() },
+                viewModel = planDetailViewModel,
+                tripId = tripId,
+
+                onBack = { navController.popBackStack() },
+
                 onNavigateToHotels = { province, _ ->
-                    val safeProv = province.ifBlank { "all" }
-                    val encoded  = java.net.URLEncoder.encode(safeProv, "UTF-8")
-                    navController.navigate(Screen.HotelListFromPlan.createRoute(encoded, tripId))
+
+                    val safeProvince =
+                        if (province.isBlank()) "all" else province
+
+                    val encoded =
+                        java.net.URLEncoder.encode(safeProvince, "UTF-8")
+
+                    navController.navigate(
+                        Screen.HotelListFromPlan.createRoute(encoded, tripId)
+                    )
                 }
             )
         }
@@ -227,8 +241,12 @@ fun NavGraph(navController: NavHostController) {
         // ── CREATE GUIDE ──────────────────────────────────
         composable(Screen.CreateGuide.route) {
             CreateGuideScreen(
-                onBackClick     = { navController.popBackStack() },
-                onSuccessFinish = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() },
+                onSuccessFinish = {
+                    // แนะนำให้โหลดข้อมูลใหม่หลังสร้างเสร็จ
+                    travelViewModel.loadGuides()
+                    navController.popBackStack()
+                }
             )
         }
 
@@ -286,6 +304,44 @@ fun NavGraph(navController: NavHostController) {
                     hotelViewModel.filterHotels(minPrice, maxPrice, maxGuest, minRating)
                 }
             )
+        }
+        composable(
+            route = Screen.EditGuide.route,
+            arguments = listOf(
+                navArgument("guideId") { type = NavType.StringType }
+            )
+        ) { backStackEntry ->
+
+            val guideId =
+                backStackEntry.arguments?.getString("guideId") ?: return@composable
+
+            // ค้นหา guide จาก ViewModel (หาจากหน้าหลัก หรือหน้าโปรไฟล์)
+            val guide = travelViewModel.guides.find { it.guide_id == guideId }
+                ?: travelViewModel.profileSummary?.guides?.find { it.guide_id == guideId }
+
+            if (guide != null) {
+
+                // ✅ เรียกใช้ CreateGuideScreen โดยส่งค่า editGuide = guide
+                // สิ่งนี้จะทำให้หน้าจอเปลี่ยนไปอยู่ในโหมด "แก้ไข" โดยอัตโนมัติ
+                CreateGuideScreen(
+                    editGuide = guide,
+                    onBackClick = {
+                        navController.popBackStack()
+                    },
+                    onSuccessFinish = {
+                        // เมื่อแก้ไขสำเร็จ ให้รีเฟรชข้อมูลในแอป
+                        travelViewModel.loadGuides()
+                        travelViewModel.loadProfile(prefs.getUserId())
+                        navController.popBackStack()
+                    }
+                )
+
+            } else {
+                // ถ้าหา guide ไม่เจอ (เช่น เน็ตหลุดโหลดไม่ทัน) ให้เด้งกลับอัตโนมัติ
+                LaunchedEffect(Unit) {
+                    navController.popBackStack()
+                }
+            }
         }
     }
 }

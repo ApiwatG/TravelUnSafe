@@ -823,9 +823,18 @@ class TravelViewModel : ViewModel() {
             val wasFavorited = isPlaceFavorited(placeId)
             val existingFavorite = favorites.find { it.place_id == placeId }
 
-            // Optimistic update
-            if (wasFavorited) _favoritePlaceIds.remove(placeId)
-            else              _favoritePlaceIds.add(placeId)
+            // Optimistic update — heart icon + like count
+            if (wasFavorited) {
+                _favoritePlaceIds.remove(placeId)
+                places = places.map { p ->
+                    if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                }
+            } else {
+                _favoritePlaceIds.add(placeId)
+                places = places.map { p ->
+                    if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                }
+            }
 
             try {
                 if (wasFavorited && existingFavorite != null) {
@@ -834,7 +843,11 @@ class TravelViewModel : ViewModel() {
                         loadFavorites(userId)
                         Toast.makeText(context, "ลบออกจากรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
                     } else {
+                        // revert
                         _favoritePlaceIds.add(placeId)
+                        places = places.map { p ->
+                            if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                        }
                         Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
                     }
                 } else {
@@ -845,17 +858,103 @@ class TravelViewModel : ViewModel() {
                         loadFavorites(userId)
                         Toast.makeText(context, "เพิ่มในรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
                     } else {
+                        // revert
                         _favoritePlaceIds.remove(placeId)
+                        places = places.map { p ->
+                            if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                        }
                         Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                // Revert on network exception
-                if (wasFavorited) _favoritePlaceIds.add(placeId)
-                else              _favoritePlaceIds.remove(placeId)
-
+                // revert both
+                if (wasFavorited) {
+                    _favoritePlaceIds.add(placeId)
+                    places = places.map { p ->
+                        if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                    }
+                } else {
+                    _favoritePlaceIds.remove(placeId)
+                    places = places.map { p ->
+                        if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                    }
+                }
                 Log.e("TravelViewModel", "toggleFavorite error: ${e.message}")
                 Toast.makeText(context, "ไม่สามารถเชื่อมต่อได้", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+    fun deleteGuide(guideId: String, userId: String) {  // ✅ เพิ่ม userId
+        viewModelScope.launch {
+            try {
+                val response = TravelClient.travelAPI.deleteGuide(guideId)
+                if (response.isSuccessful) {
+                    loadProfile(userId)   // ✅ reload profile หลังลบ
+                    loadGuides()          // ✅ reload guides list ด้วย
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        }
+    }
+
+    // ===================================
+    //  UPDATE GUIDE (เพิ่มส่วนนี้เข้าไป)
+    // ===================================
+
+    fun updateGuide(
+        context: Context,
+        guideId: String,
+        title: String,
+        description: String,
+        imageUri: android.net.Uri?,
+        userId: String,
+        onSuccess: () -> Unit,
+        onError: (String) -> Unit
+    ) {
+        viewModelScope.launch {
+            isLoading = true
+            try {
+                // 1. เตรียมข้อมูล Text เป็น RequestBody
+                val titleBody = title.toRequestBody("text/plain".toMediaType())
+                val descBody = description.toRequestBody("text/plain".toMediaType())
+
+                // 2. เตรียมข้อมูลรูปภาพ (ถ้ามีการเลือกรูปใหม่)
+                var imagePart: MultipartBody.Part? = null
+                imageUri?.let { uri ->
+                    val stream = context.contentResolver.openInputStream(uri)
+                    val bytes = stream?.readBytes()
+                    stream?.close()
+
+                    if (bytes != null) {
+                        val mimeType = context.contentResolver.getType(uri) ?: "image/jpeg"
+                        val requestBody = bytes.toRequestBody(mimeType.toMediaType())
+                        imagePart = MultipartBody.Part.createFormData("image", "guide_update.jpg", requestBody)
+                    }
+                }
+
+                // 3. ยิง API
+                Log.d("API_UPDATE_GUIDE", "URL: http://192.168.1.11:3000/guides/$guideId")
+                val response = TravelClient.travelAPI.updateGuide(guideId, titleBody, descBody, imagePart)
+
+                Log.d("API_UPDATE_GUIDE", "Status Code: ${response.code()}")
+
+                if (response.isSuccessful) {
+                    Toast.makeText(context, "อัปเดตไกด์สำเร็จ!", Toast.LENGTH_SHORT).show()
+                    loadProfile(userId) // รีโหลดหน้าโปรไฟล์
+                    loadGuides()        // รีโหลดหน้า Feed
+                    onSuccess()
+                } else {
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("API_UPDATE_GUIDE", "Failed to update: $errorBody")
+                    onError("แก้ไขไม่สำเร็จ: ${response.message()}")
+                }
+            } catch (e: Exception) {
+                Log.e("API_UPDATE_GUIDE", "Error: ${e.message}")
+                onError("เกิดข้อผิดพลาด: ${e.message}")
+            } finally {
+                isLoading = false
             }
         }
     }

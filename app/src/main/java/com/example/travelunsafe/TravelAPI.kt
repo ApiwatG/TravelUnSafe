@@ -324,4 +324,20 @@ interface TravelAPI {
     suspend fun getNotificationCount(
         @Path("userId") userId: String
     ): retrofit2.Response<NotificationCountResponse>
+
+    @DELETE("guides/delete/{id}")
+    suspend fun deleteGuide(@Path("id") guideId: String): Response<ApiResponse>
+
+    // ===================================
+    //  GUIDES (เพิ่มส่วนนี้เข้าไปครับ)
+    // ===================================
+
+    @Multipart
+    @PUT("guides/{id}")
+    suspend fun updateGuide(
+        @Path("id") guideId: String,
+        @Part("title") title: okhttp3.RequestBody?,
+        @Part("description") description: okhttp3.RequestBody?,
+        @Part image: okhttp3.MultipartBody.Part?
+    ): Response<ApiResponse>
 }
