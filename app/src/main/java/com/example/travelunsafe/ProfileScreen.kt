@@ -27,23 +27,38 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
+// ── Date helpers ──────────────────────────────────────────────────────────────
+
+/** Converts "2026-03-18T17:00:00.000Z" → "18/03/2026"  (or just "18/03" etc.) */
+fun formatIsoDate(raw: String?): String {
+    if (raw.isNullOrBlank()) return ""
+    // Take only the date part before 'T'
+    val datePart = raw.substringBefore("T").trim()   // "2026-03-18"
+    val parts = datePart.split("-")
+    return if (parts.size == 3) "${parts[2]}/${parts[1]}/${parts[0]}" else datePart
+}
+
 fun formatDateRange(start: String?, end: String?): String {
+    val s = formatIsoDate(start)
+    val e = formatIsoDate(end)
     return when {
-        !start.isNullOrBlank() && !end.isNullOrBlank() -> "$start – $end"
-        !start.isNullOrBlank() -> start
-        !end.isNullOrBlank() -> end
+        s.isNotBlank() && e.isNotBlank() && s != e -> "$s – $e"
+        s.isNotBlank() -> s
+        e.isNotBlank() -> e
         else -> ""
     }
 }
 
 val OrangeColor = Color(0xFFFF9800)
 val LightGrayProfile = Color(0xFFCFD8DC)
+
 @Composable
 fun ProfileScreen(
     viewModel: TravelViewModel? = null,
     prefs: SharedPreferencesManager? = null,
     onLogout: (() -> Unit)? = null,
-    onFriendsClick: (() -> Unit)? = null
+    onFriendsClick: (() -> Unit)? = null,
+    onNavigateToPlanDetail: ((String) -> Unit)? = null   // ← NEW
 ) {
     val context = LocalContext.current
     val localPrefs = prefs ?: remember { SharedPreferencesManager(context) }
@@ -52,7 +67,6 @@ fun ProfileScreen(
     var selectedTab by remember { mutableStateOf(0) }
     val tabs = listOf("การเดินทาง", "คู่มือ")
 
-    // Image picker launcher
     val imagePickerLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
         contract = androidx.activity.result.contract.ActivityResultContracts.GetContent()
     ) { uri ->
@@ -61,7 +75,7 @@ fun ProfileScreen(
                 context   = context,
                 userId    = userId,
                 imageUri  = uri,
-                onSuccess = { path ->
+                onSuccess = { _ ->
                     android.widget.Toast.makeText(context, "อัพโหลดรูปสำเร็จ", android.widget.Toast.LENGTH_SHORT).show()
                     viewModel.loadProfile(userId)
                 },
@@ -72,16 +86,13 @@ fun ProfileScreen(
         }
     }
 
-    // Load profile when screen opens
     LaunchedEffect(userId) {
-        android.util.Log.d("PROFILE_DEBUG", "LaunchedEffect: userId=[$userId], viewModel=${viewModel != null}")
         if (userId.isNotBlank() && viewModel != null) {
-            android.util.Log.d("PROFILE_DEBUG", "Calling loadProfile($userId)")
             viewModel.loadProfile(userId)
         }
     }
 
-    val profile = viewModel?.profileSummary
+    val profile   = viewModel?.profileSummary
     val isLoading = viewModel?.isLoading ?: false
 
     Column(
@@ -90,22 +101,20 @@ fun ProfileScreen(
             .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
-        // ===== HEADER + PROFILE PIC OVERLAP =====
         Box {
             Column {
                 ProfileHeaderWithMap(
                     onFriendsClick = onFriendsClick,
-                    onLogout = onLogout
+                    onLogout       = onLogout
                 )
                 ProfileInfoRow(
-                    username = profile?.user?.username ?: localPrefs.getUsername().ifBlank { "ผู้ใช้" },
-                    email = profile?.user?.email ?: localPrefs.getEmail(),
-                    tripCount = profile?.stats?.tripCount ?: 0,
+                    username   = profile?.user?.username ?: localPrefs.getUsername().ifBlank { "ผู้ใช้" },
+                    email      = profile?.user?.email    ?: localPrefs.getEmail(),
+                    tripCount  = profile?.stats?.tripCount  ?: 0,
                     guideCount = profile?.stats?.guideCount ?: 0
                 )
             }
 
-            // Profile pic — floats above both sections via zIndex
             Box(
                 modifier = Modifier
                     .align(Alignment.TopStart)
@@ -113,7 +122,6 @@ fun ProfileScreen(
                     .offset(y = 160.dp)
                     .zIndex(2f)
             ) {
-                // Avatar circle
                 Box(
                     modifier = Modifier
                         .size(80.dp)
@@ -130,89 +138,80 @@ fun ProfileScreen(
                         contentAlignment = Alignment.Center
                     ) {
                         val imageUrl = profile?.user?.image_profile
-                        android.util.Log.d("PROFILE_DEBUG", "image_profile = [$imageUrl]")
-                        android.util.Log.d("PROFILE_DEBUG", "full profile user = ${profile?.user}")
                         if (!imageUrl.isNullOrBlank()) {
                             val fullUrl = "http://192.168.1.11:3000/$imageUrl"
                             AsyncImage(
-                                model = fullUrl,
+                                model            = fullUrl,
                                 contentDescription = "Profile Image",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.fillMaxSize().clip(CircleShape)
+                                contentScale     = ContentScale.Crop,
+                                modifier         = Modifier.fillMaxSize().clip(CircleShape)
                             )
                         } else {
                             Text(text = "👤", fontSize = 32.sp)
                         }
                     }
                 }
-                // ➕ Upload button (bottom-right of avatar)
                 IconButton(
-                    onClick = { imagePickerLauncher.launch("image/*") },
+                    onClick  = { imagePickerLauncher.launch("image/*") },
                     modifier = Modifier
                         .size(26.dp)
                         .align(Alignment.BottomEnd)
                         .clip(CircleShape)
                         .background(OrangeColor)
                 ) {
-                    Icon(
-                        Icons.Filled.Add,
-                        contentDescription = "เปลี่ยนรูป",
-                        tint = Color.White,
-                        modifier = Modifier.size(16.dp)
-                    )
+                    Icon(Icons.Filled.Add, contentDescription = "เปลี่ยนรูป", tint = Color.White, modifier = Modifier.size(16.dp))
                 }
             }
         }
 
         HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
 
-        // ===== TAB ROW =====
         TabRow(
             selectedTabIndex = selectedTab,
-            containerColor = Color.White,
-            contentColor = OrangeColor,
-            indicator = { tabPositions ->
+            containerColor   = Color.White,
+            contentColor     = OrangeColor,
+            indicator        = { tabPositions ->
                 TabRowDefaults.SecondaryIndicator(
                     modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTab]),
-                    height = 3.dp,
-                    color = OrangeColor
+                    height   = 3.dp,
+                    color    = OrangeColor
                 )
             }
         ) {
             tabs.forEachIndexed { index, title ->
                 Tab(
                     selected = selectedTab == index,
-                    onClick = { selectedTab = index },
-                    text = {
+                    onClick  = { selectedTab = index },
+                    text     = {
                         Text(
-                            text = title,
-                            fontSize = 13.sp,
+                            text       = title,
+                            fontSize   = 13.sp,
                             fontWeight = if (selectedTab == index) FontWeight.Bold else FontWeight.Normal,
-                            color = if (selectedTab == index) OrangeColor else Color(0xFF757575)
+                            color      = if (selectedTab == index) OrangeColor else Color(0xFF757575)
                         )
                     }
                 )
             }
         }
 
-        // ===== TAB CONTENT =====
         if (isLoading) {
             Box(
-                modifier = Modifier.fillMaxWidth().padding(48.dp),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = OrangeColor)
-            }
+                modifier            = Modifier.fillMaxWidth().padding(48.dp),
+                contentAlignment    = Alignment.Center
+            ) { CircularProgressIndicator(color = OrangeColor) }
         } else {
             when (selectedTab) {
-                0 -> TravelContent(trips = profile?.trips ?: emptyList())
+                0 -> TravelContent(
+                    trips                  = profile?.trips ?: emptyList(),
+                    viewModel              = viewModel,
+                    userId                 = userId,
+                    onNavigateToPlanDetail = onNavigateToPlanDetail
+                )
                 1 -> GuideContent(guides = profile?.guides ?: emptyList())
-                2 -> TravelPeopleContent()
             }
         }
 
         Spacer(modifier = Modifier.height(80.dp))
-
         Spacer(modifier = Modifier.height(32.dp))
     }
 }
@@ -225,9 +224,7 @@ fun ProfileHeaderWithMap(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Box(
-        modifier = Modifier.fillMaxWidth().height(200.dp)
-    ) {
+    Box(modifier = Modifier.fillMaxWidth().height(200.dp)) {
         Box(
             modifier = Modifier.fillMaxSize().background(
                 Brush.linearGradient(listOf(Color(0xFFA5D6A7), Color(0xFF80CBC4), Color(0xFF81D4FA), Color(0xFF4FC3F7)))
@@ -235,7 +232,6 @@ fun ProfileHeaderWithMap(
         )
         Box(modifier = Modifier.fillMaxSize().background(Brush.radialGradient(listOf(Color(0x22FFFFFF), Color.Transparent))))
 
-        // 3-dot button + dropdown
         Box(
             modifier = Modifier
                 .align(Alignment.TopEnd)
@@ -247,64 +243,43 @@ fun ProfileHeaderWithMap(
             }
 
             DropdownMenu(
-                expanded = showMenu,
-                onDismissRequest = { showMenu = false },
-                modifier = Modifier.background(Color.White)
+                expanded          = showMenu,
+                onDismissRequest  = { showMenu = false },
+                modifier          = Modifier.background(Color.White)
             ) {
-                // Friends option
                 DropdownMenuItem(
-                    text = {
+                    text    = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.People,
-                                contentDescription = null,
-                                tint = Color(0xFF42A5F5),
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Filled.People, null, tint = Color(0xFF42A5F5), modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Text("เพื่อน", fontSize = 15.sp)
                         }
                     },
-                    onClick = {
-                        showMenu = false
-                        onFriendsClick?.invoke()
-                    }
+                    onClick = { showMenu = false; onFriendsClick?.invoke() }
                 )
-
                 HorizontalDivider(thickness = 0.5.dp, color = Color(0xFFEEEEEE))
-
-                // Logout option
                 DropdownMenuItem(
-                    text = {
+                    text    = {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                Icons.Filled.ExitToApp,
-                                contentDescription = null,
-                                tint = Color(0xFFEF5350),
-                                modifier = Modifier.size(20.dp)
-                            )
+                            Icon(Icons.Filled.ExitToApp, null, tint = Color(0xFFEF5350), modifier = Modifier.size(20.dp))
                             Spacer(modifier = Modifier.width(10.dp))
                             Text("ออกจากระบบ", fontSize = 15.sp, color = Color(0xFFEF5350))
                         }
                     },
-                    onClick = {
-                        showMenu = false
-                        // Clear session before navigating
-                        onLogout?.invoke()
-                    }
+                    onClick = { showMenu = false; onLogout?.invoke() }
                 )
             }
         }
     }
 }
 
-// ===== INFO ROW — real data =====
+// ===== INFO ROW =====
 @Composable
 fun ProfileInfoRow(
     username: String = "ผู้ใช้",
-    email: String = "",
-    tripCount: Int = 0,
-    guideCount: Int = 0
+    email: String    = "",
+    tripCount: Int   = 0,
+    guideCount: Int  = 0
 ) {
     Column(
         modifier = Modifier
@@ -313,8 +288,8 @@ fun ProfileInfoRow(
             .padding(top = 48.dp, bottom = 16.dp, start = 16.dp, end = 16.dp)
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.Top,
+            modifier             = Modifier.fillMaxWidth(),
+            verticalAlignment    = Alignment.Top,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
             Column {
@@ -324,10 +299,10 @@ fun ProfileInfoRow(
                 }
             }
             Button(
-                onClick = { },
-                colors = ButtonDefaults.buttonColors(containerColor = OrangeColor),
-                shape = RoundedCornerShape(24.dp),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
+                onClick          = { },
+                colors           = ButtonDefaults.buttonColors(containerColor = OrangeColor),
+                shape            = RoundedCornerShape(24.dp),
+                contentPadding   = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
             ) {
                 Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(16.dp))
                 Spacer(modifier = Modifier.width(6.dp))
@@ -336,7 +311,7 @@ fun ProfileInfoRow(
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {
-            ProfileStatItem(count = tripCount.toString(), label = "ทริป")
+            ProfileStatItem(count = tripCount.toString(),  label = "ทริป")
             ProfileStatItem(count = guideCount.toString(), label = "คู่มือ")
         }
     }
@@ -350,23 +325,30 @@ fun ProfileStatItem(count: String, label: String) {
     }
 }
 
-// ===== TAB 1: การเดินทาง — real trips from DB =====
+// ===== TAB 1: การเดินทาง =====
 @Composable
-fun TravelContent(trips: List<Trip> = emptyList(), viewModel: TravelViewModel? = null, userId: String = "") {
+fun TravelContent(
+    trips: List<Trip>                          = emptyList(),
+    viewModel: TravelViewModel?                = null,
+    userId: String                             = "",
+    onNavigateToPlanDetail: ((String) -> Unit)? = null
+) {
     val context = LocalContext.current
     if (trips.isEmpty()) {
-        EmptyStateContent(emoji = "🗺️", title = "คุณยังไม่มีแผนใดๆ", subtitle = "เริ่มวางแผนการเดินทางของคุณ", buttonText = "วางแผนการเดินทาง", onButtonClick = { })
+        EmptyStateContent(
+            emoji       = "🗺️",
+            title       = "คุณยังไม่มีแผนใดๆ",
+            subtitle    = "เริ่มวางแผนการเดินทางของคุณ",
+            buttonText  = "วางแผนการเดินทาง",
+            onButtonClick = { }
+        )
     } else {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             trips.forEach { trip ->
                 ProfileTripCard(
-                    trip = trip,
-                    onEdit = { newName ->
-                        viewModel?.updateTripName(trip.trip_id, newName, userId) {
-                            android.widget.Toast.makeText(context, "แก้ไขชื่อทริปสำเร็จ", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                    },
-                    onDelete = {
+                    trip                   = trip,
+                    onEdit                 = { onNavigateToPlanDetail?.invoke(trip.trip_id) },
+                    onDelete               = {
                         viewModel?.deleteTrip(trip.trip_id, userId)
                         if (userId.isNotBlank()) viewModel?.loadProfile(userId)
                     }
@@ -376,28 +358,68 @@ fun TravelContent(trips: List<Trip> = emptyList(), viewModel: TravelViewModel? =
     }
 }
 
+// ===== TRIP CARD — clean date + edit navigates to PlanDetail =====
 @Composable
-fun ProfileTripCard(trip: Trip, onEdit: ((String) -> Unit)? = null, onDelete: (() -> Unit)? = null) {
-    var showMenu by remember { mutableStateOf(false) }
+fun ProfileTripCard(
+    trip: Trip,
+    onEdit: (() -> Unit)? = null,
+    onDelete: (() -> Unit)? = null
+) {
+    var showMenu          by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    var showEditDialog by remember { mutableStateOf(false) }
-    var editName by remember { mutableStateOf(trip.trip_name) }
 
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F5F5)).padding(12.dp),
+        modifier          = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF5F5F5))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        // Icon
         Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFF80CBC4), Color(0xFF26A69A)))),
-            contentAlignment = Alignment.Center
+            modifier           = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFF80CBC4), Color(0xFF26A69A)))),
+            contentAlignment   = Alignment.Center
         ) { Icon(Icons.Default.Map, null, tint = Color.White, modifier = Modifier.size(26.dp)) }
 
         Spacer(modifier = Modifier.width(12.dp))
 
+        // Info
         Column(modifier = Modifier.weight(1f)) {
-            Text(trip.trip_name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF212121), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                trip.trip_name,
+                fontSize   = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color      = Color(0xFF212121),
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
             val dateText = formatDateRange(trip.start_date, trip.end_date)
-            if (dateText.isNotBlank()) { Text(dateText, fontSize = 12.sp, color = Color(0xFF757575)) }
+            if (dateText.isNotBlank()) {
+                Spacer(modifier = Modifier.height(2.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(
+                        Icons.Default.DateRange,
+                        null,
+                        tint     = Color(0xFF9E9E9E),
+                        modifier = Modifier.size(13.dp)
+                    )
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(dateText, fontSize = 12.sp, color = Color(0xFF757575))
+                }
+            }
+            // Province badge
+            if (!trip.province.isNullOrBlank()) {
+                Spacer(modifier = Modifier.height(3.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Icon(Icons.Default.LocationOn, null, tint = Color(0xFF42A5F5), modifier = Modifier.size(13.dp))
+                    Spacer(modifier = Modifier.width(3.dp))
+                    Text(trip.province, fontSize = 11.sp, color = Color(0xFF42A5F5), fontWeight = FontWeight.Medium)
+                }
+            }
         }
 
         // 3-dot menu
@@ -407,69 +429,50 @@ fun ProfileTripCard(trip: Trip, onEdit: ((String) -> Unit)? = null, onDelete: ((
             }
             DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
                 DropdownMenuItem(
-                    text = { Text("แก้ไขชื่อ") },
-                    onClick = { showMenu = false; editName = trip.trip_name; showEditDialog = true },
-                    leadingIcon = { Icon(Icons.Default.Edit, null, tint = Color(0xFF42A5F5)) }
+                    text         = { Text("ดูรายละเอียด / แก้ไข") },
+                    onClick      = { showMenu = false; onEdit?.invoke() },
+                    leadingIcon  = { Icon(Icons.Default.Edit, null, tint = Color(0xFF42A5F5)) }
                 )
                 DropdownMenuItem(
-                    text = { Text("ลบทริป", color = Color(0xFFE53935)) },
-                    onClick = { showMenu = false; showDeleteConfirm = true },
-                    leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFE53935)) }
+                    text         = { Text("ลบทริป", color = Color(0xFFE53935)) },
+                    onClick      = { showMenu = false; showDeleteConfirm = true },
+                    leadingIcon  = { Icon(Icons.Default.Delete, null, tint = Color(0xFFE53935)) }
                 )
             }
         }
     }
 
-    // Edit dialog
-    if (showEditDialog) {
-        AlertDialog(
-            onDismissRequest = { showEditDialog = false },
-            title = { Text("แก้ไขชื่อทริป", fontWeight = FontWeight.Bold) },
-            text = {
-                OutlinedTextField(
-                    value = editName,
-                    onValueChange = { editName = it },
-                    label = { Text("ชื่อทริป") },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(focusedBorderColor = OrangeColor, focusedLabelColor = OrangeColor)
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = { showEditDialog = false; if (editName.isNotBlank()) onEdit?.invoke(editName) }) {
-                    Text("บันทึก", color = OrangeColor, fontWeight = FontWeight.Bold)
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditDialog = false }) { Text("ยกเลิก", color = Color(0xFF757575)) }
-            }
-        )
-    }
-
-    // Delete confirmation
+    // Delete confirmation dialog
     if (showDeleteConfirm) {
         AlertDialog(
             onDismissRequest = { showDeleteConfirm = false },
-            title = { Text("ลบทริป?", fontWeight = FontWeight.Bold) },
-            text = { Text("คุณต้องการลบ \"${trip.trip_name}\" ใช่ไหม?") },
-            confirmButton = {
+            title            = { Text("ลบทริป?", fontWeight = FontWeight.Bold) },
+            text             = { Text("คุณต้องการลบ \"${trip.trip_name}\" ใช่ไหม?") },
+            confirmButton    = {
                 TextButton(onClick = { showDeleteConfirm = false; onDelete?.invoke() }) {
                     Text("ลบ", color = Color(0xFFE53935), fontWeight = FontWeight.Bold)
                 }
             },
-            dismissButton = {
-                TextButton(onClick = { showDeleteConfirm = false }) { Text("ยกเลิก", color = Color(0xFF757575)) }
+            dismissButton    = {
+                TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("ยกเลิก", color = Color(0xFF757575))
+                }
             }
         )
     }
 }
 
-// ===== TAB 2: คู่มือ — real guides from DB =====
+// ===== TAB 2: คู่มือ =====
 @Composable
 fun GuideContent(guides: List<GuideModel> = emptyList()) {
     if (guides.isEmpty()) {
-        EmptyStateContent(emoji = "📖", title = "ยังไม่มีคู่มือในระบบ", subtitle = "สร้างคู่มือการท่องเที่ยวของคุณ", buttonText = "สร้างคู่มือ", onButtonClick = { })
+        EmptyStateContent(
+            emoji       = "📖",
+            title       = "ยังไม่มีคู่มือในระบบ",
+            subtitle    = "สร้างคู่มือการท่องเที่ยวของคุณ",
+            buttonText  = "สร้างคู่มือ",
+            onButtonClick = { }
+        )
     } else {
         Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             guides.forEach { guide -> ProfileGuideCard(guide = guide) }
@@ -480,18 +483,30 @@ fun GuideContent(guides: List<GuideModel> = emptyList()) {
 @Composable
 fun ProfileGuideCard(guide: GuideModel) {
     Row(
-        modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(Color(0xFFF5F5F5)).padding(12.dp),
+        modifier          = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(12.dp))
+            .background(Color(0xFFF5F5F5))
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier.size(52.dp).clip(RoundedCornerShape(10.dp)).background(Brush.linearGradient(listOf(Color(0xFFEF9A9A), Color(0xFFE53935)))),
+            modifier         = Modifier
+                .size(52.dp)
+                .clip(RoundedCornerShape(10.dp))
+                .background(Brush.linearGradient(listOf(Color(0xFFEF9A9A), Color(0xFFE53935)))),
             contentAlignment = Alignment.Center
-        ) {
-            Icon(Icons.Default.MenuBook, null, tint = Color.White, modifier = Modifier.size(26.dp))
-        }
+        ) { Icon(Icons.Default.MenuBook, null, tint = Color.White, modifier = Modifier.size(26.dp)) }
         Spacer(modifier = Modifier.width(12.dp))
         Column {
-            Text(text = guide.guide_name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = Color(0xFF212121), maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(
+                text       = guide.guide_name,
+                fontSize   = 15.sp,
+                fontWeight = FontWeight.SemiBold,
+                color      = Color(0xFF212121),
+                maxLines   = 1,
+                overflow   = TextOverflow.Ellipsis
+            )
             if (!guide.provinces_name.isNullOrBlank()) {
                 Text(text = guide.provinces_name, fontSize = 12.sp, color = Color(0xFF757575))
             }
@@ -499,23 +514,31 @@ fun ProfileGuideCard(guide: GuideModel) {
     }
 }
 
-// ===== TAB 3 =====
 @Composable
-fun TravelPeopleContent() {
-    EmptyStateContent(emoji = "👥", title = "คุณยังไม่มีเพื่อนร่วมทาง", subtitle = "เชิญเพื่อนมาเดินทางด้วยกัน", buttonText = "เชิญเพื่อน", onButtonClick = { })
-}
-
-@Composable
-fun EmptyStateContent(emoji: String, title: String, subtitle: String, buttonText: String, onButtonClick: () -> Unit) {
-    Column(modifier = Modifier.fillMaxWidth().padding(32.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+fun EmptyStateContent(
+    emoji: String,
+    title: String,
+    subtitle: String,
+    buttonText: String,
+    onButtonClick: () -> Unit
+) {
+    Column(
+        modifier              = Modifier.fillMaxWidth().padding(32.dp),
+        horizontalAlignment   = Alignment.CenterHorizontally
+    ) {
         Spacer(modifier = Modifier.height(32.dp))
         Text(text = emoji, fontSize = 64.sp)
         Spacer(modifier = Modifier.height(16.dp))
-        Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF212121))
+        Text(text = title,    fontSize = 18.sp, fontWeight = FontWeight.Bold, color = Color(0xFF212121))
         Spacer(modifier = Modifier.height(8.dp))
         Text(text = subtitle, fontSize = 14.sp, color = Color(0xFF757575))
         Spacer(modifier = Modifier.height(24.dp))
-        Button(onClick = onButtonClick, colors = ButtonDefaults.buttonColors(containerColor = OrangeColor), shape = RoundedCornerShape(24.dp), modifier = Modifier.height(48.dp)) {
+        Button(
+            onClick        = onButtonClick,
+            colors         = ButtonDefaults.buttonColors(containerColor = OrangeColor),
+            shape          = RoundedCornerShape(24.dp),
+            modifier       = Modifier.height(48.dp)
+        ) {
             Text(text = buttonText, color = Color.White, fontWeight = FontWeight.Bold, fontSize = 16.sp)
         }
     }

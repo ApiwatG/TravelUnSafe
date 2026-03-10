@@ -19,7 +19,6 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             TravelUnSafeTheme {
-                // NavGraph owns the ONE navController — everything routes through here
                 val navController = rememberNavController()
                 NavGraph(navController = navController)
             }
@@ -27,14 +26,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-// ===================================================
-//  TRAVEL APP — Bottom Nav Shell
-//
-//  ✅ CORRECT PATTERN: receives lambdas, NOT navController
-//  NavGraph calls this and passes navigate() calls as lambdas.
-//  This way TravelApp never touches a navController directly,
-//  so there's no "graph not set" crash.
-// ===================================================
 @Composable
 fun TravelApp(
     viewModel: TravelViewModel,
@@ -45,8 +36,9 @@ fun TravelApp(
     onNavigateToHotelDetail: (Hotel) -> Unit,
     onNavigateToPlaceDetail: (String) -> Unit,
     onNavigateToCreatePlan: () -> Unit,
-    onNavigateToCreateGuide: () -> Unit,   // ← NEW
+    onNavigateToCreateGuide: () -> Unit,
     onNavigateToGuideDetail: (String) -> Unit,
+    onNavigateToPlanDetail: (String) -> Unit,   // ← NEW
     onLogout: () -> Unit
 ) {
     var currentDestination by remember { mutableStateOf<NavDestination>(NavDestination.Home) }
@@ -63,57 +55,49 @@ fun TravelApp(
                         showFabMenu = false
                     },
                     onFabClick = { showFabMenu = !showFabMenu },
-                    isFabOpen = showFabMenu
+                    isFabOpen  = showFabMenu
                 )
             }
         ) { innerPadding ->
             Box(modifier = Modifier.padding(innerPadding)) {
                 when (currentDestination) {
                     NavDestination.Home -> HomeScreen(
-                        viewModel      = viewModel,
-                        prefs          = prefs,
-                        onSearchClick  = onNavigateToSearch,
-                        onHotelsClick  = onNavigateToHotels,
+                        viewModel     = viewModel,
+                        prefs         = prefs,
+                        onSearchClick = onNavigateToSearch,
+                        onHotelsClick = onNavigateToHotels,
                         onHotelClick  = onNavigateToHotelDetail,
                         onPlaceClick  = onNavigateToPlaceDetail,
                         onGuideClick  = onNavigateToGuideDetail
-
                     )
-
                     NavDestination.Notifications -> NotificationScreen(
                         viewModel = viewModel,
-                        prefs = prefs
+                        prefs     = prefs
                     )
-
                     NavDestination.Favorites -> FavoritePlaceScreen(
                         viewModel = viewModel,
                         prefs     = prefs
                     )
                     NavDestination.Profile -> ProfileScreen(
-                        viewModel      = viewModel,
-                        prefs          = prefs,
-                        onLogout       = {
+                        viewModel              = viewModel,
+                        prefs                  = prefs,
+                        onLogout               = {
                             viewModel.logout()
                             prefs.logout()
                             onLogout()
                         },
-                        onFriendsClick = onNavigateToFriends
+                        onFriendsClick         = onNavigateToFriends,
+                        onNavigateToPlanDetail = onNavigateToPlanDetail   // ← WIRED
                     )
                 }
             }
         }
 
         FabPopupMenu(
-            visible   = showFabMenu,
-            onDismiss = { showFabMenu = false },
-            onGuideClick = {
-                showFabMenu = false
-                onNavigateToCreateGuide()                   // ✅ NOW WIRED!
-            },
-            onTravelPlanClick = {
-                showFabMenu = false
-                onNavigateToCreatePlan()
-            }
+            visible           = showFabMenu,
+            onDismiss         = { showFabMenu = false },
+            onGuideClick      = { showFabMenu = false; onNavigateToCreateGuide() },
+            onTravelPlanClick = { showFabMenu = false; onNavigateToCreatePlan() }
         )
     }
 }
@@ -121,12 +105,12 @@ fun TravelApp(
 @Composable
 fun PlaceholderScreen(title: String) {
     Box(
-        modifier = Modifier.fillMaxSize(),
+        modifier         = Modifier.fillMaxSize(),
         contentAlignment = androidx.compose.ui.Alignment.Center
     ) {
         androidx.compose.material3.Text(
-            text = title,
-            fontSize = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp),
+            text       = title,
+            fontSize   = androidx.compose.ui.unit.TextUnit(24f, androidx.compose.ui.unit.TextUnitType.Sp),
             fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
         )
     }

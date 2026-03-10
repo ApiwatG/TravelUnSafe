@@ -23,7 +23,49 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
+
+// ─────────────────────────────────────────────────────────────
+//  Convenience overload — pass guideId + TravelViewModel,
+//  and it wires GuideViewModel internally
+// ─────────────────────────────────────────────────────────────
+@Composable
+fun GuideDetailScreen(
+    guideId: String,
+    viewModel: TravelViewModel,
+    sharedPrefsManager: SharedPreferencesManager,
+    onBack: () -> Unit
+) {
+    val guideViewModel: GuideViewModel = viewModel()
+    val guide = viewModel.guides.find { it.guide_id == guideId }
+
+    LaunchedEffect(guideId) {
+        if (guide != null) guideViewModel.loadGuide(guide)
+    }
+
+    if (guide == null) {
+        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Text("ไม่พบคู่มือ", color = Color.Gray)
+        }
+        return
+    }
+
+    GuideDetailScreen(
+        uiState = guideViewModel.uiState,
+        prefs   = sharedPrefsManager,
+        onBack  = onBack,
+        onPost  = { title, detail ->
+            guideViewModel.createPost(
+                userId    = sharedPrefsManager.getUserId(),
+                title     = title,
+                detail    = detail,
+                onSuccess = {},
+                onError   = {}
+            )
+        }
+    )
+}
 
 private val Orange     = Color(0xFFFFA726)
 private val OrangeDeep = Color(0xFFF57C00)

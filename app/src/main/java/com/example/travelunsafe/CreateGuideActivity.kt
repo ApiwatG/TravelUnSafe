@@ -2,17 +2,13 @@
 package com.example.travelunsafe
 
 import android.app.Activity
-import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,7 +33,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import okhttp3.*
+import okhttp3.OkHttpClient
+import okhttp3.MultipartBody
+import okhttp3.Request
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.asRequestBody
 import org.json.JSONObject
@@ -50,7 +48,8 @@ class CreateGuideActivity : ComponentActivity() {
         setContent {
             MaterialTheme {
                 CreateGuideScreen(
-                    onBackClick = { finish() }
+                    onBackClick    = { finish() },
+                    onSuccessFinish = { finish() }   // ← always calls Activity.finish()
                 )
             }
         }
@@ -59,25 +58,23 @@ class CreateGuideActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateGuideScreen(onBackClick: () -> Unit) {
+fun CreateGuideScreen(
+    onBackClick: () -> Unit,
+    onSuccessFinish: (() -> Unit)? = null   // used when launched as Activity
+) {
     val context = LocalContext.current
 
-    // --- State ---
-    var titleText by remember { mutableStateOf("") }
-    var descriptionText by remember { mutableStateOf("") }
+    var titleText        by remember { mutableStateOf("") }
+    var descriptionText  by remember { mutableStateOf("") }
     var selectedImageUri by remember { mutableStateOf<Uri?>(null) }
-    var isLoading by remember { mutableStateOf(false) }
+    var isLoading        by remember { mutableStateOf(false) }
 
-    // SharedPreferences อ่าน user_id ที่ login ไว้
     val localPrefs = remember { SharedPreferencesManager(context) }
-    val userId = localPrefs.getUserId()
+    val userId     = localPrefs.getUserId()
 
-    // Launcher เปิด Gallery
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
-    ) { uri: Uri? ->
-        selectedImageUri = uri
-    }
+    ) { uri: Uri? -> selectedImageUri = uri }
 
     Scaffold(
         topBar = {
@@ -86,9 +83,9 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
-                            imageVector = Icons.Default.ArrowBack,
+                            imageVector   = Icons.Default.ArrowBack,
                             contentDescription = "ย้อนกลับ",
-                            tint = Color(0xFF1A1A1A)
+                            tint          = Color(0xFF1A1A1A)
                         )
                     }
                 },
@@ -110,82 +107,70 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
         ) {
             Spacer(modifier = Modifier.height(8.dp))
 
-            // ── หัวข้อ ──────────────────────────────────────
             Text(
-                text = "สร้างไกด์การเดินทาง",
-                fontSize = 22.sp,
+                text       = "สร้างไกด์การเดินทาง",
+                fontSize   = 22.sp,
                 fontWeight = FontWeight.Bold,
-                color = Color(0xFFFFA726)
+                color      = Color(0xFFFFA726)
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "สร้างไกด์การเดินทางสำหรับผู้ใช้อื่นและ\nวางแผนเส้นทางสำหรับทริป",
-                fontSize = 14.sp,
-                color = Color(0xFF9E9E9E),
+                text       = "สร้างไกด์การเดินทางสำหรับผู้ใช้อื่นและ\nวางแผนเส้นทางสำหรับทริป",
+                fontSize   = 14.sp,
+                color      = Color(0xFF9E9E9E),
                 lineHeight = 20.sp
             )
 
             Spacer(modifier = Modifier.height(28.dp))
 
-            // ── ช่อง "ที่ไหน" ───────────────────────────────
+            // ── ที่ไหน ──────────────────────────────────
             OutlinedTextField(
-                value = titleText,
+                value         = titleText,
                 onValueChange = { titleText = it },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text(
-                        text = "เมืองที่คุณต้องการไปเที่ยว",
-                        color = Color(0xFFBDBDBD)
-                    )
+                modifier      = Modifier.fillMaxWidth(),
+                placeholder   = {
+                    Text(text = "เมืองที่คุณต้องการไปเที่ยว", color = Color(0xFFBDBDBD))
                 },
-                label = {
-                    Text(
-                        text = "ที่ไหน:",
-                        color = Color(0xFF1A1A1A),
-                        fontWeight = FontWeight.SemiBold
-                    )
+                label         = {
+                    Text(text = "ที่ไหน:", color = Color(0xFF1A1A1A), fontWeight = FontWeight.SemiBold)
                 },
-                singleLine = true,
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFFFA726),
+                singleLine    = true,
+                shape         = RoundedCornerShape(12.dp),
+                colors        = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = Color(0xFFFFA726),
                     unfocusedBorderColor = Color(0xFFBDBDBD),
-                    focusedContainerColor = Color.White,
+                    focusedContainerColor   = Color.White,
                     unfocusedContainerColor = Color.White
                 )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── ช่อง "คำแนะนำ" ──────────────────────────────
+            // ── คำแนะนำ ──────────────────────────────────
             OutlinedTextField(
-                value = descriptionText,
+                value         = descriptionText,
                 onValueChange = { descriptionText = it },
-                modifier = Modifier
+                modifier      = Modifier
                     .fillMaxWidth()
                     .height(200.dp),
-                placeholder = {
-                    Text(
-                        text = "คำแนะนำ",
-                        color = Color(0xFFBDBDBD)
-                    )
+                placeholder   = {
+                    Text(text = "คำแนะนำ", color = Color(0xFFBDBDBD))
                 },
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedBorderColor = Color(0xFFFFA726),
+                shape         = RoundedCornerShape(12.dp),
+                colors        = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor   = Color(0xFFFFA726),
                     unfocusedBorderColor = Color(0xFFBDBDBD),
-                    focusedContainerColor = Color.White,
+                    focusedContainerColor   = Color.White,
                     unfocusedContainerColor = Color.White
                 )
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // ── ปุ่ม "เพิ่มรูปภาพ" ──────────────────────────
+            // ── รูปภาพ ──────────────────────────────────
             if (selectedImageUri != null) {
-                // แสดงรูปที่เลือกแล้ว
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -194,41 +179,35 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
                         .clickable { imagePickerLauncher.launch("image/*") }
                 ) {
                     AsyncImage(
-                        model = selectedImageUri,
+                        model              = selectedImageUri,
                         contentDescription = "รูปภาพที่เลือก",
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
+                        modifier           = Modifier.fillMaxSize(),
+                        contentScale       = ContentScale.Crop
                     )
                 }
             } else {
-                // ปุ่มเลือกรูป
                 Row(
-                    modifier = Modifier
+                    modifier          = Modifier
                         .fillMaxWidth()
                         .clickable { imagePickerLauncher.launch("image/*") },
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Add,
+                        imageVector        = Icons.Default.Add,
                         contentDescription = "เพิ่มรูปภาพ",
-                        tint = Color(0xFF1A1A1A),
-                        modifier = Modifier.size(20.dp)
+                        tint               = Color(0xFF1A1A1A),
+                        modifier           = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text(
-                        text = "เพิ่มรูปภาพ",
-                        fontSize = 15.sp,
-                        color = Color(0xFF1A1A1A)
-                    )
+                    Text(text = "เพิ่มรูปภาพ", fontSize = 15.sp, color = Color(0xFF1A1A1A))
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // ── ปุ่ม Submit ──────────────────────────────────
+            // ── ปุ่ม Submit ──────────────────────────────
             Button(
                 onClick = {
-                    // Validate
                     if (titleText.isBlank()) {
                         Toast.makeText(context, "กรุณากรอกสถานที่", Toast.LENGTH_SHORT).show()
                         return@Button
@@ -238,21 +217,21 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
                         return@Button
                     }
 
-                    // ส่งข้อมูลขึ้น Server
                     isLoading = true
                     CoroutineScope(Dispatchers.IO).launch {
                         val success = uploadGuide(
-                            context = context,
-                            title = titleText,
+                            context     = context,
+                            title       = titleText,
                             description = descriptionText,
-                            userId = userId,
-                            imageUri = selectedImageUri
+                            userId      = userId,
+                            imageUri    = selectedImageUri
                         )
                         withContext(Dispatchers.Main) {
                             isLoading = false
                             if (success) {
                                 Toast.makeText(context, "✅ สร้างไกด์สำเร็จ!", Toast.LENGTH_SHORT).show()
-                                (context as? Activity)?.finish()
+                                // Use the explicit finish callback (always safe)
+                                onSuccessFinish?.invoke() ?: onBackClick()
                             } else {
                                 Toast.makeText(context, "❌ เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
                             }
@@ -262,24 +241,22 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(52.dp),
-                shape = RoundedCornerShape(30.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFFFA726)
-                ),
+                shape   = RoundedCornerShape(30.dp),
+                colors  = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFA726)),
                 enabled = !isLoading
             ) {
                 if (isLoading) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        color = Color.White,
+                        modifier    = Modifier.size(24.dp),
+                        color       = Color.White,
                         strokeWidth = 2.dp
                     )
                 } else {
                     Text(
-                        text = "ไกด์การเดินทาง",
-                        fontSize = 16.sp,
+                        text       = "ไกด์การเดินทาง",
+                        fontSize   = 16.sp,
                         fontWeight = FontWeight.SemiBold,
-                        color = Color.White
+                        color      = Color.White
                     )
                 }
             }
@@ -289,7 +266,7 @@ fun CreateGuideScreen(onBackClick: () -> Unit) {
     }
 }
 
-// ── ฟังก์ชัน Upload ไปยัง Server ─────────────────────────────────────────────
+// ── Upload guide to server ────────────────────────────────────────────────────
 suspend fun uploadGuide(
     context: android.content.Context,
     title: String,
@@ -298,17 +275,16 @@ suspend fun uploadGuide(
     imageUri: Uri?
 ): Boolean {
     return try {
-        val client = OkHttpClient()
+        val client  = OkHttpClient()
         val builder = MultipartBody.Builder().setType(MultipartBody.FORM)
 
-        builder.addFormDataPart("title", title)
+        builder.addFormDataPart("title",       title)
         builder.addFormDataPart("description", description)
-        builder.addFormDataPart("user_id", userId)
+        builder.addFormDataPart("user_id",     userId)
 
-        // แนบรูปภาพ (ถ้ามี)
         if (imageUri != null) {
-            val inputStream = context.contentResolver.openInputStream(imageUri)
-            val tempFile = File(context.cacheDir, "guide_upload.jpg")
+            val inputStream  = context.contentResolver.openInputStream(imageUri)
+            val tempFile     = File(context.cacheDir, "guide_upload.jpg")
             val outputStream = FileOutputStream(tempFile)
             inputStream?.copyTo(outputStream)
             inputStream?.close()
@@ -322,15 +298,23 @@ suspend fun uploadGuide(
         }
 
         val request = Request.Builder()
-            .url("http://192.168.1.11:3000/guides")  // ✅ FIXED: port 3000
+            .url("http://192.168.1.11:3000/guides")
             .post(builder.build())
             .build()
 
         val response = client.newCall(request).execute()
-        val body = response.body?.string()
-        val json = JSONObject(body ?: "{}")
+        val bodyStr  = response.body?.string() ?: ""
 
-        !json.optBoolean("error", true)
+        // Success if HTTP 2xx, regardless of body shape
+        if (response.isSuccessful) return true
+
+        // Fallback: try to parse error flag from body
+        return try {
+            val json = JSONObject(bodyStr)
+            !json.optBoolean("error", false)
+        } catch (e: Exception) {
+            false
+        }
 
     } catch (e: Exception) {
         e.printStackTrace()
