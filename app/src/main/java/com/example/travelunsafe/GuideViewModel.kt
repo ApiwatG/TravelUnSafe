@@ -58,12 +58,14 @@ class GuideViewModel : ViewModel() {
     }
 
     fun createPost(userId: String, title: String, detail: String?, onSuccess: () -> Unit, onError: (String) -> Unit) {
+        android.util.Log.d("GuideVM", "createPost called: userId=$userId, guideId=$currentGuideId, title=$title")
         viewModelScope.launch {
             try {
                 val response = TravelClient.travelAPI.createGuidePost(
                     guideId = currentGuideId,
                     body    = CreateGuidePostRequest(user_id = userId, title = title, detail = detail)
                 )
+                android.util.Log.d("GuideVM", "response: ${response.code()} body=${response.body()}")
                 if (response.isSuccessful && response.body()?.error == false) {
                     loadPosts()
                     onSuccess()
@@ -71,6 +73,7 @@ class GuideViewModel : ViewModel() {
                     onError("โพสต์ไม่สำเร็จ")
                 }
             } catch (e: Exception) {
+                android.util.Log.e("GuideVM", "createPost error: ${e.message}")
                 onError("Network error: ${e.message}")
             }
         }
