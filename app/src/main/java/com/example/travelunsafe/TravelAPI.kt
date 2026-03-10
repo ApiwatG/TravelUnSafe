@@ -174,6 +174,11 @@ interface TravelAPI {
     @GET("api/hotels")
     suspend fun getHotels(): List<Hotel>
 
+    // เพิ่มบรรทัดนี้ลงไปครับ
+    @DELETE("hotels/{id}")
+    suspend fun deleteHotel(@Path("id") hotelId: String): Response<ApiResponse>
+
+
     // ===================================
     //  PLACES
     // ===================================

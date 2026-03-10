@@ -14,6 +14,7 @@ sealed class Screen(val route: String) {
     object Login       : Screen("login")
     object Register    : Screen("register")
     object Main        : Screen("main")
+    object Admin       : Screen("admin")
     object Search      : Screen("search")
     object Friends     : Screen("friends")
     object TripDetail  : Screen("trip_detail/{trip_id}") {
@@ -40,6 +41,7 @@ sealed class Screen(val route: String) {
 @Composable
 fun NavGraph(navController: NavHostController) {
     val travelViewModel: TravelViewModel         = viewModel()
+    val adminViewModel: AdminViewModel           = viewModel()
     val hotelViewModel: HotelViewModel           = viewModel()
     val tripViewModel: TripViewModel             = viewModel()
     val planDetailViewModel: PlanDetailViewModel  = viewModel()
@@ -63,6 +65,20 @@ fun NavGraph(navController: NavHostController) {
             RegisterScreen(navController = navController, viewModel = travelViewModel, prefs = prefs)
         }
 
+        // ── ADMIN ─────────────────────────────────────────
+        composable(Screen.Admin.route) {
+            AdminScreen(
+                // แก้ไขจาก TravelViewModel (ชื่อ Class) เป็น travelViewModel (ตัวแปร)
+                viewModel = adminViewModel,
+                onBack    = { navController.popBackStack() },
+                onLogout  = {
+                    navController.navigate(Screen.Login.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
+        }
+
         // ── MAIN SHELL ────────────────────────────────────
         composable(Screen.Main.route) {
             TravelApp(
@@ -84,7 +100,6 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToGuideDetail = { guideId ->
                     navController.navigate(Screen.GuideDetail.createRoute(guideId))
                 },
-                // ← Profile "แก้ไขชื่อ" now goes directly to PlanDetailScreen
                 onNavigateToPlanDetail  = { tripId ->
                     navController.navigate(Screen.PlanDetail.createRoute(tripId))
                 },

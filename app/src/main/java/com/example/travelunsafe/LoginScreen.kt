@@ -154,7 +154,18 @@ fun LoginScreen(
                                 prefs = prefs,
                                 onSuccess = {
                                     if (rememberEmail) prefs.saveEmail(email) else prefs.clearSavedEmail()
-                                    navController.navigate(Screen.Main.route) {
+
+                                    // ดึง Role ที่บันทึกไว้ล่าสุดจาก SharedPreferences
+                                    val userRole = prefs.getRole()
+
+                                    // เลือกปลายทางตาม Role
+                                    val destination = if (userRole == "admin") {
+                                        Screen.Admin.route
+                                    } else {
+                                        Screen.Main.route
+                                    }
+
+                                    navController.navigate(destination) {
                                         popUpTo(Screen.Login.route) { inclusive = true }
                                     }
                                 },
