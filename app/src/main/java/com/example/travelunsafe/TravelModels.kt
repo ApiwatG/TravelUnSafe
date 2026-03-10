@@ -43,12 +43,11 @@ data class RegisterResponse(
 )
 
 
-// ===== TRIP =====
 data class Trip(
     val trip_id: String,
-    val province: String? = null,
-    val provinces_id: String? = null, // 💡 เพิ่มบรรทัดนี้! เพื่อให้แอปจำรหัสจังหวัดได้
     val trip_name: String,
+    val province: String? = null,
+    val provinces_id: String? = null, // 💡 ตัวนี้สำคัญมาก ห้ามหาย! (ใช้เทียบรหัสจังหวัด)
     val start_date: String? = null,
     val end_date: String? = null,
     val user_id: String,
