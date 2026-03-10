@@ -823,9 +823,18 @@ class TravelViewModel : ViewModel() {
             val wasFavorited = isPlaceFavorited(placeId)
             val existingFavorite = favorites.find { it.place_id == placeId }
 
-            // Optimistic update
-            if (wasFavorited) _favoritePlaceIds.remove(placeId)
-            else              _favoritePlaceIds.add(placeId)
+            // Optimistic update — heart icon + like count
+            if (wasFavorited) {
+                _favoritePlaceIds.remove(placeId)
+                places = places.map { p ->
+                    if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                }
+            } else {
+                _favoritePlaceIds.add(placeId)
+                places = places.map { p ->
+                    if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                }
+            }
 
             try {
                 if (wasFavorited && existingFavorite != null) {
@@ -834,7 +843,11 @@ class TravelViewModel : ViewModel() {
                         loadFavorites(userId)
                         Toast.makeText(context, "ลบออกจากรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
                     } else {
+                        // revert
                         _favoritePlaceIds.add(placeId)
+                        places = places.map { p ->
+                            if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                        }
                         Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
                     }
                 } else {
@@ -845,15 +858,27 @@ class TravelViewModel : ViewModel() {
                         loadFavorites(userId)
                         Toast.makeText(context, "เพิ่มในรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
                     } else {
+                        // revert
                         _favoritePlaceIds.remove(placeId)
+                        places = places.map { p ->
+                            if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                        }
                         Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
                     }
                 }
             } catch (e: Exception) {
-                // Revert on network exception
-                if (wasFavorited) _favoritePlaceIds.add(placeId)
-                else              _favoritePlaceIds.remove(placeId)
-
+                // revert both
+                if (wasFavorited) {
+                    _favoritePlaceIds.add(placeId)
+                    places = places.map { p ->
+                        if (p.place_id == placeId) p.copy(like_count = p.like_count + 1) else p
+                    }
+                } else {
+                    _favoritePlaceIds.remove(placeId)
+                    places = places.map { p ->
+                        if (p.place_id == placeId) p.copy(like_count = maxOf(0, p.like_count - 1)) else p
+                    }
+                }
                 Log.e("TravelViewModel", "toggleFavorite error: ${e.message}")
                 Toast.makeText(context, "ไม่สามารถเชื่อมต่อได้", Toast.LENGTH_SHORT).show()
             }
