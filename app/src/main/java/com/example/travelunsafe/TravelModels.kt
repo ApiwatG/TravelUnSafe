@@ -88,6 +88,7 @@ data class Place(
     val place_name: String,
     val location: String? = null,
     val view: Int = 0,
+    val like_count: Int = 0,             // ← favorite count from server
     val placedetail: String? = null,     // ← NEW
     val image_url: String? = null,        // ← NEW
     val category_id: String? = null,
@@ -209,7 +210,9 @@ data class GuideModel(
     val user_id: String? = null,
     val username: String? = null,
     val image_profile: String? = null,
-    val createdAt: String? = null
+    val createdAt: String? = null,
+    val view_count: Int = 0,             // ← new: incremented on each open
+    val like_count: Int = 0              // ← new: count of favorite_guides rows
 )
 
 // ===== GUIDE POST =====
@@ -372,5 +375,31 @@ data class FavResponse<T>(
     val data: T?
 )
 
+// ===== FAVORITE GUIDE =====
+data class FavoriteGuide(
+    val favorite_guide_id: String,
+    val guide_id: String,
+    val user_id: String,
+    val guide_name: String? = null,
+    val guide_detail: String? = null,
+    val image_guide: String? = null,
+    val username: String? = null,
+    val image_profile: String? = null,
+    val createdAt: String? = null
+)
 
+data class AddFavoriteGuideRequest(
+    val user_id: String,
+    val guide_id: String
+)
 
+data class AddFavoriteGuideResponse(
+    val error: Boolean = false,
+    val message: String,
+    val favorite_guide_id: String? = null
+)
+
+data class FavoriteGuideCheckResponse(
+    val isFavorited: Boolean,
+    val favorite_guide_id: String? = null
+)

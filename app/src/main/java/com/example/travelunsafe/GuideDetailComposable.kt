@@ -39,9 +39,25 @@ fun GuideDetailScreen(
 ) {
     val guideViewModel: GuideViewModel = viewModel()
     val guide = viewModel.guides.find { it.guide_id == guideId }
+    val userId = remember { sharedPrefsManager.getUserId() }
+
+    // Track favorite state locally so heart updates instantly
+    var isFavorited by remember { mutableStateOf(false) }
+    var isTogglingFav by remember { mutableStateOf(false) }
 
     LaunchedEffect(guideId) {
         if (guide != null) guideViewModel.loadGuide(guide)
+        // Increment view count when screen opens
+        viewModel.incrementGuideView(guideId)
+        // Check current favorite status
+        if (userId.isNotBlank()) {
+            viewModel.checkFavoriteGuide(userId, guideId)
+        }
+    }
+
+    // Sync from viewModel check result
+    LaunchedEffect(viewModel.favoriteGuideCheck) {
+        isFavorited = viewModel.favoriteGuideCheck?.isFavorited ?: false
     }
 
     if (guide == null) {
@@ -51,11 +67,22 @@ fun GuideDetailScreen(
         return
     }
 
-    GuideDetailScreen(
-        uiState = guideViewModel.uiState,
-        prefs   = sharedPrefsManager,
-        onBack  = onBack,
-        onPost  = { title, detail ->
+    // Pass heart button as action to the inner screen via wrapper
+    GuideDetailScreenWithFav(
+        uiState     = guideViewModel.uiState,
+        prefs       = sharedPrefsManager,
+        isFavorited = isFavorited,
+        onToggleFav = {
+            if (!isTogglingFav && userId.isNotBlank()) {
+                isTogglingFav = true
+                viewModel.toggleFavoriteGuide(userId, guideId) { result ->
+                    isFavorited = result
+                    isTogglingFav = false
+                }
+            }
+        },
+        onBack = onBack,
+        onPost = { title, detail ->
             guideViewModel.createPost(
                 userId    = sharedPrefsManager.getUserId(),
                 title     = title,
@@ -65,6 +92,80 @@ fun GuideDetailScreen(
             )
         }
     )
+}
+
+// ─────────────────────────────────────────────────────────────
+//  Wrapper that adds a favorite heart to the TopAppBar
+// ─────────────────────────────────────────────────────────────
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun GuideDetailScreenWithFav(
+    uiState: GuideDetailUiState,
+    prefs: SharedPreferencesManager,
+    isFavorited: Boolean,
+    onToggleFav: () -> Unit,
+    onBack: () -> Unit,
+    onPost: (title: String, detail: String?) -> Unit
+) {
+    var showPostDialog by remember { mutableStateOf(false) }
+
+    Scaffold(
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = {
+                    Text(
+                        text = uiState.title.ifBlank { "คู่มือท่องเที่ยว" },
+                        fontSize = 17.sp,
+                        fontWeight = FontWeight.Bold,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(22.dp))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = onToggleFav) {
+                        Icon(
+                            imageVector = if (isFavorited) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                            contentDescription = if (isFavorited) "ยกเลิกถูกใจ" else "ถูกใจ",
+                            tint = if (isFavorited) Color(0xFFE91E63) else Color(0xFF757575)
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.centerAlignedTopAppBarColors(containerColor = Color.White)
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = { showPostDialog = true },
+                containerColor = Orange,
+                contentColor = Color.White,
+                shape = CircleShape
+            ) {
+                Icon(Icons.Default.Add, contentDescription = "เพิ่มโพสต์", modifier = Modifier.size(28.dp))
+            }
+        },
+        containerColor = Color(0xFFF5F5F5)
+    ) { innerPadding ->
+        when {
+            uiState.isLoading -> LoadingView(innerPadding)
+            uiState.error != null -> ErrorView(uiState.error, innerPadding)
+            else -> GuideContent(uiState = uiState, padding = innerPadding)
+        }
+    }
+
+    if (showPostDialog) {
+        PostDialog(
+            onDismiss = { showPostDialog = false },
+            onPost    = { title, detail ->
+                showPostDialog = false
+                onPost(title, detail)
+            }
+        )
+    }
 }
 
 private val Orange     = Color(0xFFFFA726)

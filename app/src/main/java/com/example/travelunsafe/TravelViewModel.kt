@@ -601,6 +601,99 @@ class TravelViewModel : ViewModel() {
     }
 
     // ===================================
+    //  GUIDE VIEW COUNT
+    // ===================================
+
+    fun incrementGuideView(guideId: String) {
+        viewModelScope.launch {
+            try {
+                TravelClient.travelAPI.incrementGuideView(guideId)
+                // Update local list so UI reflects immediately
+                guides = guides.map { g ->
+                    if (g.guide_id == guideId) g.copy(view_count = g.view_count + 1) else g
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("TravelViewModel", "incrementGuideView: ${e.message}")
+            }
+        }
+    }
+
+    // ===================================
+    //  FAVORITE GUIDES
+    // ===================================
+
+    var favoriteGuides by mutableStateOf<List<FavoriteGuide>>(emptyList())
+        private set
+
+    var favoriteGuideCheck by mutableStateOf<FavoriteGuideCheckResponse?>(null)
+        private set
+
+    fun loadFavoriteGuides(userId: String) {
+        viewModelScope.launch {
+            try {
+                val res = TravelClient.travelAPI.getFavoriteGuides(userId)
+                if (res.isSuccessful) favoriteGuides = res.body() ?: emptyList()
+            } catch (e: Exception) {
+                android.util.Log.e("TravelViewModel", "loadFavoriteGuides: ${e.message}")
+            }
+        }
+    }
+
+    fun checkFavoriteGuide(userId: String, guideId: String) {
+        viewModelScope.launch {
+            try {
+                val res = TravelClient.travelAPI.checkFavoriteGuide(userId, guideId)
+                if (res.isSuccessful) favoriteGuideCheck = res.body()
+            } catch (e: Exception) {
+                android.util.Log.e("TravelViewModel", "checkFavoriteGuide: ${e.message}")
+            }
+        }
+    }
+
+    fun toggleFavoriteGuide(
+        userId: String,
+        guideId: String,
+        onResult: (isFavorited: Boolean) -> Unit
+    ) {
+        viewModelScope.launch {
+            try {
+                val checkRes = TravelClient.travelAPI.checkFavoriteGuide(userId, guideId)
+                val check = checkRes.body()
+
+                if (check?.isFavorited == true && check.favorite_guide_id != null) {
+                    // Already favorited → remove
+                    val delRes = TravelClient.travelAPI.removeFavoriteGuide(check.favorite_guide_id)
+                    if (delRes.isSuccessful) {
+                        favoriteGuideCheck = FavoriteGuideCheckResponse(false, null)
+                        guides = guides.map { g ->
+                            if (g.guide_id == guideId) g.copy(like_count = maxOf(0, g.like_count - 1)) else g
+                        }
+                        loadFavoriteGuides(userId)
+                        onResult(false)
+                    } else onResult(true)
+                } else {
+                    // Not favorited → add
+                    val addRes = TravelClient.travelAPI.addFavoriteGuide(
+                        AddFavoriteGuideRequest(userId, guideId)
+                    )
+                    if (addRes.isSuccessful) {
+                        val newId = addRes.body()?.favorite_guide_id
+                        favoriteGuideCheck = FavoriteGuideCheckResponse(true, newId)
+                        guides = guides.map { g ->
+                            if (g.guide_id == guideId) g.copy(like_count = g.like_count + 1) else g
+                        }
+                        loadFavoriteGuides(userId)
+                        onResult(true)
+                    } else onResult(false)
+                }
+            } catch (e: Exception) {
+                android.util.Log.e("TravelViewModel", "toggleFavoriteGuide: ${e.message}")
+                onResult(false)
+            }
+        }
+    }
+
+    // ===================================
     //  ITINERARY
     // ===================================
 
@@ -769,4 +862,3 @@ class TravelViewModel : ViewModel() {
 
 
 }
-

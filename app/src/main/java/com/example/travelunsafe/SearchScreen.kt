@@ -85,6 +85,8 @@ fun SearchScreen(
             title       = g.guide_name,
             author      = g.username ?: "ไม่ระบุชื่อ",
             authorImage = g.image_profile,
+            likes       = g.like_count.toString(),   // ← real like count
+            views       = g.view_count.toString(),   // ← real view count
             imageUrl    = g.image_guide
         )
     }.let { mapped ->
@@ -492,6 +494,19 @@ fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, trailingContent: @Com
                 Spacer(modifier = Modifier.width(4.dp))
                 Text(
                     text = "${place.view} views",
+                    fontSize = 12.sp,
+                    color = Color(0xFF9E9E9E)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Icon(
+                    imageVector = Icons.Default.Favorite,
+                    contentDescription = null,
+                    tint = Color(0xFFE91E63),
+                    modifier = Modifier.size(14.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${place.like_count}",
                     fontSize = 12.sp,
                     color = Color(0xFF9E9E9E)
                 )

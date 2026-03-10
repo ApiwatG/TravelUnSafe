@@ -282,4 +282,36 @@ interface TravelAPI {
 
     @DELETE("api/itinerarys/{id}")
     suspend fun deleteItinerary(@Path("id") itineraryId: String): Response<ApiResponse>
+
+    // ===================================
+    //  GUIDE VIEW COUNT
+    // ===================================
+
+    @PATCH("guides/{id}/view")
+    suspend fun incrementGuideView(@Path("id") guideId: String): Response<ApiResponse>
+
+    // ===================================
+    //  FAVORITE GUIDES
+    // ===================================
+
+    @GET("favorite-guides")
+    suspend fun getFavoriteGuides(
+        @Query("user_id") userId: String
+    ): Response<List<FavoriteGuide>>
+
+    @POST("favorite-guides")
+    suspend fun addFavoriteGuide(
+        @Body request: AddFavoriteGuideRequest
+    ): Response<AddFavoriteGuideResponse>
+
+    @DELETE("favorite-guides/{id}")
+    suspend fun removeFavoriteGuide(
+        @Path("id") favoriteGuideId: String
+    ): Response<ApiResponse>
+
+    @GET("favorite-guides/check")
+    suspend fun checkFavoriteGuide(
+        @Query("user_id") userId: String,
+        @Query("guide_id") guideId: String
+    ): Response<FavoriteGuideCheckResponse>
 }
