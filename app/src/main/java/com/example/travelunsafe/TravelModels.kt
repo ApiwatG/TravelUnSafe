@@ -403,3 +403,9 @@ data class FavoriteGuideCheckResponse(
     val isFavorited: Boolean,
     val favorite_guide_id: String? = null
 )
+
+// ===== NOTIFICATION =====
+data class NotificationCountResponse(
+    val error: Boolean,
+    val count: Int
+)

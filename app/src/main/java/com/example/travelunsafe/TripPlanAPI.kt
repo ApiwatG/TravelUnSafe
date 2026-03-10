@@ -109,6 +109,11 @@ interface TripPlanApiService {
     suspend fun deleteBooking(
         @Path("bookingId") bookingId: String
     ): retrofit2.Response<ApiResponse>
+
+    @GET("api/notifications/count/{userId}")
+    suspend fun getNotificationCount(
+        @Path("userId") userId: String
+    ): retrofit2.Response<NotificationCountResponse>
 }
 
 object TripPlanClient {

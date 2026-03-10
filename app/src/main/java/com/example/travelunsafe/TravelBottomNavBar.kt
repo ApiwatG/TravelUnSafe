@@ -14,8 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,17 +22,17 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
 // ===================================================
 //  NAVIGATION DESTINATIONS
-//  Add more destinations here as the app grows
 // ===================================================
 sealed class NavDestination(val route: String) {
     object Home          : NavDestination("home")
-    object Notifications : NavDestination("notifications") // 💡 1. เปลี่ยนชื่อจาก Messages เป็น Notifications
+    object Notifications : NavDestination("notifications")
     object Favorites     : NavDestination("favorites")
     object Profile       : NavDestination("profile")
 }
@@ -50,18 +49,6 @@ data class BottomNavItem(
 )
 
 // ===================================================
-//  DEFAULT NAV ITEMS LIST
-//  Import this wherever you need the default set
-// ===================================================
-val defaultNavItems = listOf(
-    BottomNavItem(NavDestination.Home,          Icons.Filled.Home,          Icons.Outlined.Home,           "หน้าหลัก"),
-    // 💡 2. เปลี่ยนไอคอนและข้อความเป็น "แจ้งเตือน"
-    BottomNavItem(NavDestination.Notifications, Icons.Filled.Notifications, Icons.Outlined.Notifications,  "แจ้งเตือน", badgeCount = 1),
-    BottomNavItem(NavDestination.Favorites,     Icons.Filled.Favorite,      Icons.Outlined.FavoriteBorder, "ถูกใจ"),
-    BottomNavItem(NavDestination.Profile,       Icons.Filled.Person,        Icons.Outlined.Person,         "โปรไฟล์")
-)
-
-// ===================================================
 //  MAIN BOTTOM NAV BAR COMPOSABLE
 // ===================================================
 @Composable
@@ -69,9 +56,42 @@ fun TravelBottomNavBar(
     currentDestination: NavDestination,
     onItemSelected: (NavDestination) -> Unit,
     onFabClick: () -> Unit,
-    isFabOpen: Boolean,
-    items: List<BottomNavItem> = defaultNavItems
+    isFabOpen: Boolean
 ) {
+    val context = LocalContext.current
+    val prefs = remember { SharedPreferencesManager(context) }
+    val userId = prefs.getUserId()
+
+    // 💡 ตัวแปรเก็บจำนวนแจ้งเตือน (เริ่มต้นที่ 0)
+    var notificationCount by remember { mutableIntStateOf(0) }
+
+    // 💡 ทริคเด็ด: ให้ดึงตัวเลขแจ้งเตือนใหม่ทุกครั้งที่ผู้ใช้ "เปลี่ยนหน้าจอ" (currentDestination เปลี่ยน)
+// 💡 ทริคเด็ด: ให้ดึงตัวเลขแจ้งเตือนใหม่ทุกครั้งที่ผู้ใช้ "เปลี่ยนหน้าจอ" หรือเพิ่งได้ userId มา
+    LaunchedEffect(currentDestination, userId) {
+        if (userId.isNotEmpty()) {
+            try {
+                val response = TripPlanClient.apiService.getNotificationCount(userId)
+                if (response.isSuccessful) {
+                    notificationCount = response.body()?.count ?: 0
+                    println("🔔 ดึงแจ้งเตือนสำเร็จ: ได้เลข $notificationCount") // เช็คใน Logcat
+                } else {
+                    println("❌ ดึงแจ้งเตือนพลาด: Error ${response.code()}")
+                }
+            } catch (e: Exception) {
+                println("❌ ดึงแจ้งเตือนพลาด (Network): ${e.message}")
+            }
+        }
+    }
+
+    // 💡 ย้ายลิสต์เมนูมาสร้างไว้ข้างใน เพื่อให้มันอัปเดตตัวเลข notificationCount ได้ทันที
+    val items = listOf(
+        BottomNavItem(NavDestination.Home, Icons.Filled.Home, Icons.Outlined.Home, "หน้าหลัก"),
+        // ส่งตัวเลขที่ดึงมาจาก API เข้าไปโชว์
+        BottomNavItem(NavDestination.Notifications, Icons.Filled.Notifications, Icons.Outlined.Notifications, "แจ้งเตือน", badgeCount = notificationCount),
+        BottomNavItem(NavDestination.Favorites, Icons.Filled.Favorite, Icons.Outlined.FavoriteBorder, "ถูกใจ"),
+        BottomNavItem(NavDestination.Profile, Icons.Filled.Person, Icons.Outlined.Person, "โปรไฟล์")
+    )
+
     val skyBlueGradient = Brush.verticalGradient(
         colors = listOf(Color(0xFFB3E5FC), Color(0xFF81D4FA))
     )
@@ -208,6 +228,7 @@ private fun BottomNavItem(
     ) {
         BadgedBox(
             badge = {
+                // 💡 ถ้าจำนวนแจ้งเตือนมากกว่า 0 ถึงจะโชว์วงกลมสีแดง
                 if (item.badgeCount > 0) {
                     Badge(containerColor = Color.Red) {
                         Text(text = item.badgeCount.toString(), fontSize = 10.sp, color = Color.White)
