@@ -314,4 +314,20 @@ interface TravelAPI {
         @Query("user_id") userId: String,
         @Query("guide_id") guideId: String
     ): Response<FavoriteGuideCheckResponse>
+
+    @DELETE("guides/delete/{id}")
+    suspend fun deleteGuide(@Path("id") guideId: String): Response<ApiResponse>
+
+    // ===================================
+    //  GUIDES (เพิ่มส่วนนี้เข้าไปครับ)
+    // ===================================
+
+    @Multipart
+    @PUT("guides/{id}")
+    suspend fun updateGuide(
+        @Path("id") guideId: String,
+        @Part("title") title: okhttp3.RequestBody?,
+        @Part("description") description: okhttp3.RequestBody?,
+        @Part image: okhttp3.MultipartBody.Part?
+    ): Response<ApiResponse>
 }
