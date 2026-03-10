@@ -108,4 +108,5 @@ fun SearchHotelScreen(
             }
         }
     }
+
 }

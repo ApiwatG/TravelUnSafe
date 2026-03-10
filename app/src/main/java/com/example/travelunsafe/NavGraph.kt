@@ -40,6 +40,8 @@ sealed class Screen(val route: String) {
     object GuideDetail : Screen("guide_detail/{guideId}") {
         fun createRoute(guideId: String) = "guide_detail/$guideId"
     }
+
+
 }
 
 @Composable
@@ -78,6 +80,14 @@ fun NavGraph(navController: NavHostController) {
                 onNavigateToSearch      = { navController.navigate(Screen.Search.route) },
                 onNavigateToFriends     = { navController.navigate(Screen.Friends.route) },
                 onNavigateToHotels      = { navController.navigate(Screen.HotelList.route) },
+                onNavigateToHotelDetail = { hotel ->
+                    selectedHotel  = hotel
+                    selectedTripId = null
+                    navController.navigate(Screen.HotelDetail.route)
+                },
+                onNavigateToPlaceDetail = { placeId ->  // ✅ เพิ่ม
+                    navController.navigate(Screen.PlaceDetailScreen.createRoute(placeId))
+                },
                 onNavigateToCreatePlan  = { navController.navigate(Screen.CreatePlan.route) },
                 onNavigateToCreateGuide = { navController.navigate(Screen.CreateGuide.route) },
                 onNavigateToGuideDetail = { guideId ->
@@ -157,6 +167,7 @@ fun NavGraph(navController: NavHostController) {
                     tripId      = selectedTripId,
                     userId      = prefs.getUserId(),
                     viewModel   = travelViewModel,
+                    showAddButton  = selectedTripId != null,
                     onBackClick = { navController.popBackStack() }
                 )
             }

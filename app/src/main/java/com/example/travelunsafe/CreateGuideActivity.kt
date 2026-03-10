@@ -322,7 +322,7 @@ suspend fun uploadGuide(
         }
 
         val request = Request.Builder()
-            .url("http://10.0.2.2:3000/guides")  // ✅ FIXED: port 3000
+            .url("http://192.168.1.11:3000/guides")  // ✅ FIXED: port 3000
             .post(builder.build())
             .build()
 

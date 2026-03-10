@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -50,6 +51,7 @@ fun SearchScreen(
     onPlaceClick: ((String) -> Unit)? = null
 ) {
     val context = LocalContext.current
+    val userId = remember { prefs.getUserId() }
     var searchQuery by remember { mutableStateOf("") }
     var selectedCategory by remember { mutableStateOf<String?>(null) }
 
@@ -58,6 +60,9 @@ fun SearchScreen(
         viewModel.loadProvinces()
         viewModel.loadPlaces()
         viewModel.loadGuides()
+        if (userId.isNotBlank()) {
+            viewModel.loadFavorites(userId)
+        }
     }
 
     // ===== FILTER PLACES by name, location, OR province name =====
@@ -263,13 +268,12 @@ fun SearchScreen(
                         PlaceResultRow(
                             place = place,
                             onClick = { onPlaceClick?.invoke(place.place_id) },
-                            onFavorite = {
-                                val userId = prefs.getUserId()
+                            trailingContent = {
                                 if (userId.isNotBlank()) {
-                                    viewModel.addFavorite(
-                                        context = context,
-                                        userId = userId,
-                                        placeId = place.place_id
+                                    FavoriteHeartButton(
+                                        placeId = place.place_id,
+                                        viewModel = viewModel,
+                                        userId = userId
                                     )
                                 }
                             }
@@ -406,7 +410,7 @@ fun HotelBookingBanner() {
 
 // ===== PLACE RESULT ROW =====
 @Composable
-fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, onFavorite: (() -> Unit)? = null ) {
+fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, trailingContent: @Composable (() -> Unit)? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -495,16 +499,8 @@ fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, onFavorite: (() -> Un
             }
         }
 
-        if (onFavorite != null) {
-            IconButton(onClick = { onFavorite() }) {
-                Icon(
-                    Icons.Default.FavoriteBorder,
-                    contentDescription = "Add to favorites",
-                    tint = Color(0xFFE57373),
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-
+        if (trailingContent != null) {
+            trailingContent()
         }
     }
 }
@@ -596,5 +592,28 @@ fun GuideResultRow(guide: GuideResult, onClick: () -> Unit = {}) {
                 Icon(Icons.Default.Share, null, tint = Color(0xFF9E9E9E), modifier = Modifier.size(16.dp))
             }
         }
+    }
+
+}
+
+@Composable
+fun FavoriteHeartButton(
+    placeId: String,
+    viewModel: TravelViewModel,
+    userId: String,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val isFavorited = viewModel.isPlaceFavorited(placeId)
+
+    IconButton(
+        onClick = { viewModel.toggleFavorite(context, userId, placeId) },
+        modifier = modifier
+    ) {
+        Icon(
+            imageVector = if (isFavorited) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+            contentDescription = if (isFavorited) "ลบออกจากรายการโปรด" else "เพิ่มในรายการโปรด",
+            tint = if (isFavorited) Color(0xFFE91E63) else Color.Gray
+        )
     }
 }

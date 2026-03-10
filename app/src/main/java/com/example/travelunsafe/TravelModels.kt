@@ -250,17 +250,7 @@ data class ProfileSummary(
 )
 
 // ===== FAVORITE PLACE =====
-data class FavoritePlace(
-    val favorite_id: String,
-    val user_id: String,
-    val place_id: String,
-    val place_name: String,
-    val location: String? = null,
-    val view: Int = 0,
-    val category_place_name: String? = null,
-    val provinces_name: String? = null,
-    val createdAt: String? = null
-)
+
 
 data class AddFavoriteRequest(
     val user_id: String,
@@ -348,3 +338,39 @@ data class TripInvitation(
     val trip_name: String,
     val inviter_name: String
 )
+
+data class FavoriteRequest(
+    val user_id: String,
+    val place_id: String
+)
+
+data class FavoritePlace(
+    val favorite_id: String,
+    val place_id: String,
+    val user_id: String,
+    val place_name: String?,
+    val location: String?,
+    val view: Int?,
+    val category_place_name: String?,
+    val provinces_name: String?,
+    val createdAt: String?
+)
+
+data class FavoriteCheckResponse(
+    val isFavorited: Boolean,
+    val data: FavoritePlace?
+)
+data class FavoriteToggleResponse(
+    val favorite_id: String,
+    val is_favorited: Boolean
+)
+
+
+data class FavResponse<T>(
+    val status: Boolean,
+    val message: String,
+    val data: T?
+)
+
+
+

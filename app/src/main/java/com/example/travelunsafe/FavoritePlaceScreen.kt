@@ -176,14 +176,16 @@ fun FavoritePlaceCard(
 
         // Info
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = favorite.place_name,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.SemiBold,
-                color = Color(0xFF212121),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
+            favorite.place_name?.let {
+                Text(
+                    text = it,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.SemiBold,
+                    color = Color(0xFF212121),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
             if (!favorite.location.isNullOrBlank()) {
                 Spacer(modifier = Modifier.height(2.dp))
                 Row(verticalAlignment = Alignment.CenterVertically) {

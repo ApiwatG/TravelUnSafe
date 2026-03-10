@@ -31,14 +31,15 @@ import coil.compose.AsyncImage
 fun HotelDetailScreen(
     hotel: Hotel,
     tripId: String? = null,
-    userId: String = "U0001",
+    userId: String = "",
     viewModel: TravelViewModel,
+    showAddButton: Boolean = true,
     onBackClick: () -> Unit
 ) {
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val baseUrl = "http://10.0.2.2:3000/images/" // แก้ IP ให้ตรงกับเครื่องคุณถ้าใช้เครื่องจริงเทสต์
+    val baseUrl = "http://192.168.1.11:3000/images/" // แก้ IP ให้ตรงกับเครื่องคุณถ้าใช้เครื่องจริงเทสต์
 
     Scaffold(
         topBar = {
@@ -94,13 +95,15 @@ fun HotelDetailScreen(
                         modifier = Modifier.weight(1f)
                     )
 
-                    Button(
-                        onClick = { showDialog = true },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFAB40)),
-                        shape = RoundedCornerShape(20.dp),
-                        contentPadding = PaddingValues(horizontal = 24.dp)
-                    ) {
-                        Text("เพิ่ม", color = Color.White)
+                    if (showAddButton) {
+                        Button(
+                            onClick = { showDialog = true },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFAB40)),
+                            shape = RoundedCornerShape(20.dp),
+                            contentPadding = PaddingValues(horizontal = 24.dp)
+                        ) {
+                            Text("เพิ่ม", color = Color.White)
+                        }
                     }
                 }
 

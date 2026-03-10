@@ -5,6 +5,29 @@ import retrofit2.http.*
 
 interface TravelAPI {
 
+    interface FavoriteApiService {
+        // Get all favorites for a user (for Favorites screen / initial load)
+        @GET("favorites/user/{userId}")
+        suspend fun getUserFavorites(
+            @Path("userId") userId: String
+        ): Response<FavResponse<List<FavoritePlace>>>
+
+        // Toggle favorite on/off — returns new state
+        @POST("favorites/toggle")
+        suspend fun toggleFavorite(
+            @Body request: FavoriteRequest
+        ): Response<FavResponse<FavoriteToggleResponse>>
+
+        // Check if a single place is favorited (optional — isFavorite in /places already covers this)
+        @GET("favorites/check")
+        suspend fun checkFavorite(
+            @Query("user_id") userId: String,
+            @Query("place_id") placeId: String
+        ): Response<FavResponse<FavoriteCheckResponse>>
+    }
+
+
+
     @GET("provinces")
     suspend fun getAllProvinces(): List<Province>
 

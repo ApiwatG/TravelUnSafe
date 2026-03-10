@@ -42,6 +42,8 @@ fun TravelApp(
     onNavigateToSearch: () -> Unit,
     onNavigateToFriends: () -> Unit,
     onNavigateToHotels: () -> Unit,
+    onNavigateToHotelDetail: (Hotel) -> Unit,
+    onNavigateToPlaceDetail: (String) -> Unit,
     onNavigateToCreatePlan: () -> Unit,
     onNavigateToCreateGuide: () -> Unit,   // ← NEW
     onNavigateToGuideDetail: (String) -> Unit,
@@ -72,6 +74,8 @@ fun TravelApp(
                         prefs          = prefs,
                         onSearchClick  = onNavigateToSearch,
                         onHotelsClick  = onNavigateToHotels,
+                        onHotelClick  = onNavigateToHotelDetail,
+                        onPlaceClick  = onNavigateToPlaceDetail,
                         onGuideClick  = onNavigateToGuideDetail
 
                     )

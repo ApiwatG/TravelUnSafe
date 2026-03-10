@@ -1,8 +1,10 @@
 package com.example.travelunsafe
 
 import android.content.Context
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
@@ -14,8 +16,11 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 class TravelViewModel : ViewModel() {
 
-    // ===== STATE =====
+    private val _favoritePlaceIds = mutableStateListOf<String>()
+    val favoritePlaceIds: List<String> get() = _favoritePlaceIds
 
+    fun isPlaceFavorited(placeId: String): Boolean = _favoritePlaceIds.contains(placeId)
+    // ===== STATE =====
     // Auth
     var currentUser by mutableStateOf<User?>(null)
         private set
@@ -75,6 +80,10 @@ class TravelViewModel : ViewModel() {
 
     var tripInvitations by mutableStateOf<List<TripInvitation>>(emptyList())
         private set
+
+
+
+
 
     fun loadTripInvitations(userId: String) {
         viewModelScope.launch {
@@ -286,7 +295,7 @@ class TravelViewModel : ViewModel() {
         viewModelScope.launch {
             isLoading = true
             try {
-                hotels = TravelClient.travelAPI.getAllHotels(provincesId)
+                hotels = TravelClient.travelAPI.getHotels()
                 errorMessage = ""
             } catch (e: Exception) {
                 errorMessage = "Failed to load hotels: ${e.message}"
@@ -513,6 +522,8 @@ class TravelViewModel : ViewModel() {
             isLoading = true
             try {
                 favorites = TravelClient.travelAPI.getFavorites(userId)
+                _favoritePlaceIds.clear()
+                _favoritePlaceIds.addAll(favorites.map { it.place_id })
                 errorMessage = ""
             } catch (e: Exception) {
                 errorMessage = "Failed to load favorites: ${e.message}"
@@ -521,6 +532,8 @@ class TravelViewModel : ViewModel() {
             }
         }
     }
+
+
 
     fun addFavorite(context: Context, userId: String, placeId: String, onSuccess: () -> Unit = {}) {
         viewModelScope.launch {
@@ -711,5 +724,49 @@ class TravelViewModel : ViewModel() {
             loadFriends(userId)
         }
     }
+
+    fun toggleFavorite(context: Context, userId: String, placeId: String) {
+        viewModelScope.launch {
+            val wasFavorited = isPlaceFavorited(placeId)
+            val existingFavorite = favorites.find { it.place_id == placeId }
+
+            // Optimistic update
+            if (wasFavorited) _favoritePlaceIds.remove(placeId)
+            else              _favoritePlaceIds.add(placeId)
+
+            try {
+                if (wasFavorited && existingFavorite != null) {
+                    val response = TravelClient.travelAPI.removeFavorite(existingFavorite.favorite_id)
+                    if (response.isSuccessful) {
+                        loadFavorites(userId)
+                        Toast.makeText(context, "ลบออกจากรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
+                    } else {
+                        _favoritePlaceIds.add(placeId)
+                        Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
+                    }
+                } else {
+                    val response = TravelClient.travelAPI.addFavorite(
+                        AddFavoriteRequest(user_id = userId, place_id = placeId)
+                    )
+                    if (response.isSuccessful) {
+                        loadFavorites(userId)
+                        Toast.makeText(context, "เพิ่มในรายการโปรดแล้ว", Toast.LENGTH_SHORT).show()
+                    } else {
+                        _favoritePlaceIds.remove(placeId)
+                        Toast.makeText(context, "เกิดข้อผิดพลาด กรุณาลองใหม่", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } catch (e: Exception) {
+                // Revert on network exception
+                if (wasFavorited) _favoritePlaceIds.add(placeId)
+                else              _favoritePlaceIds.remove(placeId)
+
+                Log.e("TravelViewModel", "toggleFavorite error: ${e.message}")
+                Toast.makeText(context, "ไม่สามารถเชื่อมต่อได้", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
+
 }
 

@@ -36,6 +36,8 @@ fun HomeScreen(
     prefs: SharedPreferencesManager,
     onSearchClick: () -> Unit = {},
     onHotelsClick: () -> Unit = {},
+    onHotelClick: (Hotel) -> Unit = {},
+    onPlaceClick: (String) -> Unit = {},
     onGuideClick: (String) -> Unit = {}
 ) {
     val username = prefs.getUsername().ifBlank { "นักท่องเที่ยว" }
@@ -43,12 +45,23 @@ fun HomeScreen(
     LaunchedEffect(Unit) {
         viewModel.loadPlaces()
         viewModel.loadGuides()
+        viewModel.loadHotels()  // ✅ เพิ่ม
     }
 
     val topPlaces = remember(viewModel.places) {
         viewModel.places.sortedByDescending { it.view }.take(10)
     }
     val guides = viewModel.guides
+
+    // ✅ สุ่มรูปสถานที่สำหรับ Banner
+    val bannerPlace = remember(viewModel.places) {
+        viewModel.places.filter { !it.image_url.isNullOrBlank() }.randomOrNull()
+    }
+
+    // ✅ โรงแรม 5 อันดับแรก
+    val topHotels = remember(viewModel.hotels) {
+        viewModel.hotels.take(5)
+    }
 
     Column(
         modifier = Modifier
@@ -57,7 +70,7 @@ fun HomeScreen(
             .verticalScroll(rememberScrollState())
     ) {
         HomeTopAppBar(username = username, onSearchClick = onSearchClick)
-        HeroBanner()
+        HeroBanner(bannerPlace = bannerPlace)  // ✅ ส่ง bannerPlace ไป
         Spacer(modifier = Modifier.height(8.dp))
 
         SectionHeader(title = "สถานที่ยอดนิยม", emoji = "📍")
@@ -66,7 +79,10 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(topPlaces, key = { it.place_id }) { place ->
-                FeaturedPlaceCard(place = place)
+                FeaturedPlaceCard(
+                    place = place,
+                    onClick = { onPlaceClick(place.place_id) }  // ✅ เพิ่ม
+                )
             }
             if (topPlaces.isEmpty()) {
                 item { EmptyRowCard("ยังไม่มีสถานที่") }
@@ -89,9 +105,23 @@ fun HomeScreen(
         }
 
         Spacer(modifier = Modifier.height(8.dp))
+
         SectionHeader(title = "โรงแรมและที่พัก", emoji = "🏨")
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 16.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            items(topHotels, key = { it.hotel_id }) { hotel ->
+                FeaturedHotelCard(hotel = hotel, onClick = { onHotelClick(hotel) })
+            }
+            if (topHotels.isEmpty()) {
+                item { EmptyRowCard("ยังไม่มีโรงแรม") }
+            }
+        }
         Row(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 4.dp),
             horizontalArrangement = Arrangement.End
         ) {
             TextButton(onClick = onHotelsClick) {
@@ -106,12 +136,16 @@ fun HomeScreen(
 @Composable
 fun HomeTopAppBar(username: String = "", onSearchClick: () -> Unit = {}) {
     Row(
-        modifier = Modifier.fillMaxWidth().statusBarsPadding().height(64.dp).padding(horizontal = 20.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .height(64.dp)
+            .padding(horizontal = 20.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Column {
-            Text(text = "TravelUnSafe", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TitleBlack)
+            Text(text = "TravelUnSave", fontSize = 22.sp, fontWeight = FontWeight.Bold, color = TitleBlack)
             if (username.isNotBlank()) {
                 Text(text = "สวัสดี, $username 👋", fontSize = 13.sp, color = Color(0xFF757575))
             }
@@ -123,13 +157,35 @@ fun HomeTopAppBar(username: String = "", onSearchClick: () -> Unit = {}) {
 }
 
 @Composable
-fun HeroBanner() {
+fun HeroBanner(bannerPlace: Place? = null) {
     Box(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp).height(180.dp).clip(RoundedCornerShape(20.dp))
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp)
+            .height(180.dp)
+            .clip(RoundedCornerShape(20.dp))
     ) {
-        Box(modifier = Modifier.fillMaxSize().background(Brush.linearGradient(listOf(Color(0xFF1A237E), Color(0xFF0277BD)))))
-        Box(modifier = Modifier.fillMaxSize().background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
-        Column(modifier = Modifier.align(Alignment.BottomStart).padding(20.dp)) {
+        if (bannerPlace?.image_url != null) {
+            val fullUrl = if (bannerPlace.image_url.startsWith("http")) bannerPlace.image_url
+            else "http://192.168.1.11:3000/${bannerPlace.image_url}"
+            AsyncImage(
+                model = fullUrl,
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
+            )
+        } else {
+            Box(modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.linearGradient(listOf(Color(0xFF1A237E), Color(0xFF0277BD)))))
+        }
+        // Overlay ตลอด
+        Box(modifier = Modifier
+            .fillMaxSize()
+            .background(Brush.verticalGradient(listOf(Color.Transparent, Color(0x99000000)))))
+        Column(modifier = Modifier
+            .align(Alignment.BottomStart)
+            .padding(20.dp)) {
             Text(text = "🗺️  สำรวจจุดหมายใหม่", fontSize = 18.sp, color = Color.White, fontWeight = FontWeight.Bold)
             Text(text = "ค้นพบประสบการณ์การเดินทางของคุณ", fontSize = 13.sp, color = Color.White.copy(alpha = 0.85f))
         }
@@ -138,7 +194,9 @@ fun HeroBanner() {
 
 @Composable
 fun SectionHeader(title: String, emoji: String = "") {
-    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier = Modifier
+        .fillMaxWidth()
+        .padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.CenterVertically) {
         if (emoji.isNotEmpty()) { Text(text = emoji, fontSize = 18.sp); Spacer(modifier = Modifier.width(8.dp)) }
         Text(text = title, fontSize = 18.sp, fontWeight = FontWeight.Bold, color = TitleBlack)
     }
@@ -155,18 +213,23 @@ private val placeGradients = listOf(
 )
 
 @Composable
-fun FeaturedPlaceCard(place: Place) {
+fun FeaturedPlaceCard(place: Place, onClick: () -> Unit = {}) {
     val gradient = placeGradients[(place.place_id.hashCode() and 0x7FFFFFFF) % placeGradients.size]
 
-    Column(modifier = Modifier.width(160.dp).clickable { }) {
+    Column(modifier = Modifier
+        .width(160.dp)
+        .clickable { onClick() }) {
         Box(
-            modifier = Modifier.fillMaxWidth().height(120.dp).clip(RoundedCornerShape(16.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(16.dp)),
             contentAlignment = Alignment.Center
         ) {
             // ✅ FIX: Load real image if available
             if (!place.image_url.isNullOrBlank()) {
                 val fullUrl = if (place.image_url.startsWith("http")) place.image_url
-                else "http://10.0.2.2:3000/${place.image_url}"
+                else "http://192.168.1.11:3000/${place.image_url}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = place.place_name,
@@ -176,7 +239,9 @@ fun FeaturedPlaceCard(place: Place) {
             } else {
                 // Fallback gradient
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Brush.linearGradient(gradient)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(gradient)),
                     contentAlignment = Alignment.Center
                 ) { Text(text = "📍", fontSize = 36.sp) }
             }
@@ -210,16 +275,23 @@ fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
     val gradient = guideGradients[(guide.guide_id.hashCode() and 0x7FFFFFFF) % guideGradients.size]
 
     Column(
-        modifier = Modifier.width(220.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF8F8F8)).clickable { onClick() }
+        modifier = Modifier
+            .width(220.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFF8F8F8))
+            .clickable { onClick() }
     ) {
         Box(
-            modifier = Modifier.fillMaxWidth().height(130.dp).clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(130.dp)
+                .clip(RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp)),
             contentAlignment = Alignment.Center
         ) {
             // ✅ FIX: Load real guide image if available
             if (!guide.image_guide.isNullOrBlank()) {
                 val fullUrl = if (guide.image_guide.startsWith("http")) guide.image_guide
-                else "http://10.0.2.2:3000/${guide.image_guide}"
+                else "http://192.168.1.11:3000/${guide.image_guide}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = guide.guide_name,
@@ -228,15 +300,20 @@ fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
                 )
             } else {
                 Box(
-                    modifier = Modifier.fillMaxSize().background(Brush.linearGradient(gradient)),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(gradient)),
                     contentAlignment = Alignment.Center
                 ) { Text(text = "🗺️", fontSize = 40.sp) }
             }
 
             if (!guide.provinces_name.isNullOrBlank()) {
                 Box(
-                    modifier = Modifier.align(Alignment.TopEnd).padding(8.dp)
-                        .clip(RoundedCornerShape(8.dp)).background(Color.Black.copy(alpha = 0.45f))
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color.Black.copy(alpha = 0.45f))
                         .padding(horizontal = 8.dp, vertical = 3.dp)
                 ) { Text(text = guide.provinces_name, fontSize = 10.sp, color = Color.White) }
             }
@@ -252,7 +329,10 @@ fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
             HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 0.5.dp)
             Spacer(modifier = Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(modifier = Modifier.size(28.dp).clip(CircleShape).background(Color(0xFFCFD8DC)), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier
+                    .size(28.dp)
+                    .clip(CircleShape)
+                    .background(Color(0xFFCFD8DC)), contentAlignment = Alignment.Center) {
                     Icon(Icons.Default.Person, null, tint = Color(0xFF607D8B), modifier = Modifier.size(18.dp))
                 }
                 Spacer(modifier = Modifier.width(6.dp))
@@ -265,7 +345,65 @@ fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
 @Composable
 fun EmptyRowCard(text: String) {
     Box(
-        modifier = Modifier.width(160.dp).height(140.dp).clip(RoundedCornerShape(16.dp)).background(Color(0xFFF0F0F0)),
+        modifier = Modifier
+            .width(160.dp)
+            .height(140.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(Color(0xFFF0F0F0)),
         contentAlignment = Alignment.Center
     ) { Text(text = text, fontSize = 13.sp, color = Color(0xFF9E9E9E)) }
+}
+
+@Composable
+fun FeaturedHotelCard(hotel: Hotel, onClick: () -> Unit = {}) {
+    val baseUrl = "http://192.168.1.11:3000/images/"
+
+    Column(modifier = Modifier
+        .width(160.dp)
+        .clickable { onClick() }) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp)
+                .clip(RoundedCornerShape(16.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            if (!hotel.image_url.isNullOrBlank()) {
+                AsyncImage(
+                    model = "$baseUrl${hotel.image_url}",
+                    contentDescription = hotel.hotel_name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(
+                            Brush.linearGradient(
+                                listOf(
+                                    Color(0xFF81D4FA),
+                                    Color(0xFF0288D1)
+                                )
+                            )
+                        ),
+                    contentAlignment = Alignment.Center
+                ) { Text("🏨", fontSize = 36.sp) }
+            }
+            // badge ราคา
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(6.dp)
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color.Black.copy(alpha = 0.55f))
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Text("฿${hotel.price_per_night.toInt()}", fontSize = 11.sp, color = Color.White, fontWeight = FontWeight.Bold)
+            }
+        }
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(text = hotel.hotel_name, fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = TextPrimary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Text(text = hotel.province_name ?: "ไม่ระบุ", fontSize = 12.sp, color = TextSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
 }
