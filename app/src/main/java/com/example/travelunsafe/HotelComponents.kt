@@ -103,7 +103,7 @@ fun HotelCard(
 ) {
     // URL พื้นฐานของรูปภาพ (เปลี่ยน IP เป็นเครื่อง Server ของคุณ)
     // ถ้าใช้ Emulator Android ให้ใช้ 10.0.2.2 แทน localhost
-    val baseUrl = "http://192.168.1.11:3000/images/"
+    val baseUrl = "http://10.0.2.2:3000/images/"
 
     Card(
         modifier = Modifier

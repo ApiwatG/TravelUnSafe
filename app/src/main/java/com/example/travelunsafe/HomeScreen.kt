@@ -229,7 +229,7 @@ fun FeaturedPlaceCard(place: Place, onClick: () -> Unit = {}) {
             // ✅ FIX: Load real image if available
             if (!place.image_url.isNullOrBlank()) {
                 val fullUrl = if (place.image_url.startsWith("http")) place.image_url
-                else "http://192.168.1.11:3000/${place.image_url}"
+                else "http://10.0.2.2:3000/${place.image_url}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = place.place_name,
