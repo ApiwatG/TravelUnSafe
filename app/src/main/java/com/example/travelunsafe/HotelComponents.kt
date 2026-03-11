@@ -103,7 +103,7 @@ fun HotelCard(
 ) {
     // URL พื้นฐานของรูปภาพ (เปลี่ยน IP เป็นเครื่อง Server ของคุณ)
     // ถ้าใช้ Emulator Android ให้ใช้ 10.0.2.2 แทน localhost
-    val baseUrl = "http://10.0.2.2:3000/images/"
+    val baseUrl = "http://192.168.1.11:3000/images/"
 
     Card(
         modifier = Modifier
@@ -115,7 +115,11 @@ fun HotelCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Row {
-            // ส่วนรูปภาพ
+            val imageUrl = when {
+                hotel.image_url.isNullOrBlank() -> null
+                hotel.image_url.startsWith("http") -> hotel.image_url  // already full URL ✅
+                else -> "http://192.168.1.11:3000/uploads/${hotel.image_url}"  // relative → prepend server base
+            }
             AsyncImage(
                 model = if (hotel.image_url != null) "$baseUrl${hotel.image_url}" else "", // ต่อ URL กับชื่อไฟล์
                 contentDescription = hotel.hotel_name,
