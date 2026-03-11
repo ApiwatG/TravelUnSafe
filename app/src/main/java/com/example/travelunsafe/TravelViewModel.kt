@@ -650,18 +650,23 @@ class TravelViewModel : ViewModel() {
         }
     }
 
+    private val _togglingGuides = mutableSetOf<String>()
+
     fun toggleFavoriteGuide(
         userId: String,
         guideId: String,
         onResult: (isFavorited: Boolean) -> Unit
     ) {
+        // ✅ Prevent double-tap race condition
+        if (_togglingGuides.contains(guideId)) return
+        _togglingGuides.add(guideId)
+
         viewModelScope.launch {
             try {
                 val checkRes = TravelClient.travelAPI.checkFavoriteGuide(userId, guideId)
                 val check = checkRes.body()
 
                 if (check?.isFavorited == true && check.favorite_guide_id != null) {
-                    // Already favorited → remove
                     val delRes = TravelClient.travelAPI.removeFavoriteGuide(check.favorite_guide_id)
                     if (delRes.isSuccessful) {
                         favoriteGuideCheck = FavoriteGuideCheckResponse(false, null)
@@ -672,7 +677,6 @@ class TravelViewModel : ViewModel() {
                         onResult(false)
                     } else onResult(true)
                 } else {
-                    // Not favorited → add
                     val addRes = TravelClient.travelAPI.addFavoriteGuide(
                         AddFavoriteGuideRequest(userId, guideId)
                     )
@@ -687,12 +691,14 @@ class TravelViewModel : ViewModel() {
                     } else onResult(false)
                 }
             } catch (e: Exception) {
-                android.util.Log.e("TravelViewModel", "toggleFavoriteGuide: ${e.message}")
+                Log.e("TravelViewModel", "toggleFavoriteGuide: ${e.message}")
                 onResult(false)
+            } finally {
+                // ✅ Always release the lock
+                _togglingGuides.remove(guideId)
             }
         }
     }
-
     // ===================================
     //  ITINERARY
     // ===================================

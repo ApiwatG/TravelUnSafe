@@ -140,7 +140,7 @@ fun ProfileScreen(
                     ) {
                         val imageUrl = profile?.user?.image_profile
                         if (!imageUrl.isNullOrBlank()) {
-                            val fullUrl = "http://10.0.2.2:3000/$imageUrl"
+                            val fullUrl = "http://192.168.1.11:3000/$imageUrl"
                             AsyncImage(
                                 model            = fullUrl,
                                 contentDescription = "Profile Image",
