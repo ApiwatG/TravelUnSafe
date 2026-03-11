@@ -167,7 +167,7 @@ fun HeroBanner(bannerPlace: Place? = null) {
     ) {
         if (bannerPlace?.image_url != null) {
             val fullUrl = if (bannerPlace.image_url.startsWith("http")) bannerPlace.image_url
-            else "http://10.0.2.2:3000/${bannerPlace.image_url}"
+            else "http://10.0.2.2:3000/images/${bannerPlace.image_url}"
             AsyncImage(
                 model = fullUrl,
                 contentDescription = null,
@@ -229,7 +229,7 @@ fun FeaturedPlaceCard(place: Place, onClick: () -> Unit = {}) {
             // ✅ FIX: Load real image if available
             if (!place.image_url.isNullOrBlank()) {
                 val fullUrl = if (place.image_url.startsWith("http")) place.image_url
-                else "http://10.0.2.2:3000/${place.image_url}"
+                else "http://10.0.2.2:3000/images/${place.image_url}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = place.place_name,
@@ -291,7 +291,7 @@ fun FeaturedGuideCard(guide: GuideModel, onClick: () -> Unit = {}) {
             // ✅ FIX: Load real guide image if available
             if (!guide.image_guide.isNullOrBlank()) {
                 val fullUrl = if (guide.image_guide.startsWith("http")) guide.image_guide
-                else "http://10.0.2.2:3000/${guide.image_guide}"
+                else "http://10.0.2.2:3000/images/${guide.image_guide}"
                 AsyncImage(
                     model = fullUrl,
                     contentDescription = guide.guide_name,
