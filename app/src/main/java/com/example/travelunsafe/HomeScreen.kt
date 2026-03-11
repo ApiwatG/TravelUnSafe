@@ -369,10 +369,12 @@ fun FeaturedHotelCard(hotel: Hotel, onClick: () -> Unit = {}) {
             contentAlignment = Alignment.Center
         ) {
             if (!hotel.image_url.isNullOrBlank()) {
-                val fullUrl = if (hotel.image_url.startsWith("http")) hotel.image_url
-                else "http://10.0.2.2:3000/images/${hotel.image_url}"
                 AsyncImage(
-                    model = fullUrl,
+                    model = when {
+                        hotel.image_url.isNullOrBlank() -> ""
+                        hotel.image_url.startsWith("http") -> hotel.image_url
+                        else -> "$baseUrl${hotel.image_url}"
+                    },
                     contentDescription = hotel.hotel_name,
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize()

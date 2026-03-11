@@ -39,7 +39,7 @@ fun HotelDetailScreen(
     var showDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
-    val baseUrl = "http://192.168.1.11:3000/images/" // แก้ IP ให้ตรงกับเครื่องคุณถ้าใช้เครื่องจริงเทสต์
+    val baseUrl = "http://10.0.2.2:3000/images/" // แก้ IP ให้ตรงกับเครื่องคุณถ้าใช้เครื่องจริงเทสต์
 
     Scaffold(
         topBar = {
