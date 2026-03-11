@@ -108,7 +108,8 @@ data class Booking(
     val booking_date: String? = null,
     val check_in_date: String,
     val check_out_date: String,
-    val total_price: Int = 0,
+    val price_per_night: Double = 0.0,  // เพิ่ม
+    val total_price: Double = 0.0,
     val status: String = "pending",
     val hotel_id: String,
     val trip_id: String? = null,

@@ -303,16 +303,7 @@ fun ProfileInfoRow(
                     Text(text = email, fontSize = 13.sp, color = Color(0xFF757575))
                 }
             }
-            Button(
-                onClick          = { },
-                colors           = ButtonDefaults.buttonColors(containerColor = OrangeColor),
-                shape            = RoundedCornerShape(24.dp),
-                contentPadding   = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-            ) {
-                Icon(Icons.Default.Share, null, tint = Color.White, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text("แชร์", color = Color.White, fontWeight = FontWeight.Bold, fontSize = 14.sp)
-            }
+
         }
         Spacer(modifier = Modifier.height(12.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(24.dp)) {

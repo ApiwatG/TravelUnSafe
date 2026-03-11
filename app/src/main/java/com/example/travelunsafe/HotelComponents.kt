@@ -117,17 +117,16 @@ fun HotelCard(
         Row {
             val imageUrl = when {
                 hotel.image_url.isNullOrBlank() -> null
-                hotel.image_url.startsWith("http") -> hotel.image_url  // already full URL ✅
-                else -> "http://192.168.1.11:3000/uploads/${hotel.image_url}"  // relative → prepend server base
+                hotel.image_url.startsWith("http") -> hotel.image_url
+                else -> "http://10.0.2.2:3000/images/${hotel.image_url}"
             }
             AsyncImage(
-                model = if (hotel.image_url != null) "$baseUrl${hotel.image_url}" else "", // ต่อ URL กับชื่อไฟล์
+                model = imageUrl ?: "",  // ✅ use imageUrl instead of re-building it
                 contentDescription = hotel.hotel_name,
                 modifier = Modifier
                     .width(140.dp)
                     .fillMaxHeight(),
-                contentScale = ContentScale.Crop, // ตัดภาพให้เต็มกรอบ
-                // ถ้าโหลดรูปไม่ติด ให้โชว์สีเทาแทน
+                contentScale = ContentScale.Crop,
                 error = androidx.compose.ui.graphics.painter.ColorPainter(Color.LightGray)
             )
 

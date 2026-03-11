@@ -421,16 +421,7 @@ private fun GuideAuthorCard(author: GuideAuthor) {
                 Text("ผู้เขียน", fontSize = 11.sp, color = TextSec)
                 Text(author.name, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = TextPrim)
             }
-            Button(
-                onClick = { },
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Orange),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp)
-            ) {
-                Icon(Icons.Default.PersonAdd, null, modifier = Modifier.size(15.dp), tint = Color.White)
-                Spacer(Modifier.width(4.dp))
-                Text("ติดตาม", fontWeight = FontWeight.Bold, color = Color.White, fontSize = 13.sp)
-            }
+
         }
     }
 }

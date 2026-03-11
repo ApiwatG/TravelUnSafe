@@ -27,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import coil.compose.AsyncImage
 
 @Composable
 fun PlanDetailScreen(
@@ -195,18 +197,35 @@ fun PlanDetailScreen(
                         modifier = Modifier.fillMaxWidth().padding(16.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Box(
-                            modifier = Modifier.size(50.dp).clip(CircleShape).background(Color(0xFF5BB2F9)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text("🏨", fontSize = 24.sp)
+                        val imageUrl = when {
+                            booking.image_url.isNullOrBlank() -> null
+                            booking.image_url.startsWith("http") -> booking.image_url
+                            else -> "http://10.0.2.2:3000/images/${booking.image_url}"
                         }
+
+                        AsyncImage(
+                            model = imageUrl,
+                            contentDescription = booking.hotel_name,
+                            contentScale = ContentScale.Crop,
+                            modifier = Modifier
+                                .size(70.dp)
+                                .clip(RoundedCornerShape(10.dp)),
+                            error = androidx.compose.ui.graphics.painter.ColorPainter(Color(0xFF5BB2F9))
+                        )
                         Spacer(modifier = Modifier.width(16.dp))
                         Column(modifier = Modifier.weight(1f)) {
                             Text(text = booking.hotel_name ?: "โรงแรม", fontWeight = FontWeight.Bold, fontSize = 16.sp)
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(text = "เช็คอิน: ${booking.check_in_date.substringBefore("T")}", fontSize = 12.sp, color = Color.DarkGray)
                             Text(text = "เช็คเอาท์: ${booking.check_out_date.substringBefore("T")}", fontSize = 12.sp, color = Color.DarkGray)
+                            if (booking.total_price > 0) {
+                                Text(
+                                    text = "ราคารวม: ${booking.total_price} บาท",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF1565C0),
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
                         }
                         // 💡 ปุ่มลบโรงแรม
                         IconButton(onClick = { bookingToRemove = booking }) {
@@ -265,15 +284,23 @@ fun PlanDetailScreen(
                 Icon(Icons.Default.Add, contentDescription = "เพิ่มค่าใช้จ่าย", tint = Color(0xFFF7B05B))
             }
         }
+        viewModel.tripBookings.forEach { booking ->
+            if (booking.total_price > 0) {
+                ExpenseRow(
+                    title = "🏨 ${booking.hotel_name ?: "โรงแรม"}",
+                    amount = "${booking.total_price} บาท"
+                    // ไม่มี onDelete เพราะลบได้จากส่วนโรงแรมด้านบนอยู่แล้ว
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
         viewModel.expenseList.forEach { expense ->
             ExpenseRow(
                 title = expense.expense_name,
                 amount = "${expense.amount} บาท",
-                // 💡 กดแล้วแสดง Popup
-                onDelete = { expenseToRemove = expense }
             )
         }
+
 
         Spacer(modifier = Modifier.height(16.dp))
         HorizontalDivider(color = Color.LightGray, thickness = 1.dp)

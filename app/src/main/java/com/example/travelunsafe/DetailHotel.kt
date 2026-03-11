@@ -153,6 +153,20 @@ fun HotelDetailScreen(
 
         // ===== DIALOG ยืนยันการจอง =====
         if (showDialog) {
+            var checkInInput by remember { mutableStateOf("") }
+            var checkOutInput by remember { mutableStateOf("") }
+
+            // คำนวณจำนวนคืนและราคารวม
+            val nights = remember(checkInInput, checkOutInput) {
+                try {
+                    val fmt = java.time.LocalDate.parse(checkInInput)
+                    val fmtOut = java.time.LocalDate.parse(checkOutInput)
+                    val n = java.time.temporal.ChronoUnit.DAYS.between(fmt, fmtOut).toInt()
+                    if (n > 0) n else 0
+                } catch (e: Exception) { 0 }
+            }
+            val totalPrice = nights * hotel.price_per_night.toInt()
+
             Dialog(onDismissRequest = { showDialog = false }) {
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -163,26 +177,47 @@ fun HotelDetailScreen(
                         modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
-                        Text(
-                            text = "ยืนยันการเพิ่มหรือไม่?",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Medium,
-                            modifier = Modifier.padding(bottom = 16.dp)
+                        Text("ยืนยันการเพิ่มหรือไม่?", fontSize = 20.sp, fontWeight = FontWeight.Medium)
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Text(hotel.hotel_name, fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                        Text("฿${hotel.price_per_night.toInt()} / คืน", fontSize = 14.sp, color = Color(0xFF00B0FF))
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // ช่องกรอกวันเช็คอิน
+                        OutlinedTextField(
+                            value = checkInInput,
+                            onValueChange = { checkInInput = it },
+                            label = { Text("เช็คอิน (YYYY-MM-DD)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        // ช่องกรอกวันเช็คเอาท์
+                        OutlinedTextField(
+                            value = checkOutInput,
+                            onValueChange = { checkOutInput = it },
+                            label = { Text("เช็คเอาท์ (YYYY-MM-DD)") },
+                            modifier = Modifier.fillMaxWidth(),
+                            singleLine = true
                         )
 
-                        Text(
-                            text = hotel.hotel_name,
-                            fontSize = 16.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF212121),
-                            modifier = Modifier.padding(bottom = 4.dp)
-                        )
-                        Text(
-                            text = "฿${hotel.price_per_night.toInt()} / คืน",
-                            fontSize = 14.sp,
-                            color = Color(0xFF00B0FF),
-                            modifier = Modifier.padding(bottom = 24.dp)
-                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        // แสดงราคารวม
+                        if (nights > 0) {
+                            Text(
+                                text = "$nights คืน × ฿${hotel.price_per_night.toInt()} = ฿$totalPrice",
+                                fontSize = 15.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFFF7B05B)
+                            )
+                        } else if (checkInInput.isNotBlank() && checkOutInput.isNotBlank()) {
+                            Text("วันที่ไม่ถูกต้อง", color = Color.Red, fontSize = 13.sp)
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
 
                         Row(
                             modifier = Modifier.fillMaxWidth(),
@@ -190,43 +225,36 @@ fun HotelDetailScreen(
                         ) {
                             Button(
                                 onClick = {
-                                    try {
+                                    if (nights <= 0) {
+                                        Toast.makeText(context, "กรุณากรอกวันที่ให้ถูกต้อง", Toast.LENGTH_SHORT).show()
+                                        return@Button
+                                    }
+                                    if (tripId != null && tripId.isNotBlank()) {
                                         showDialog = false
-                                        // 💡 สำคัญ: ตรวจสอบว่ามี tripId ส่งมาหรือไม่
-                                        if (tripId != null && tripId.isNotBlank()) {
-                                            viewModel.createBooking(
-                                                context = context,
-                                                hotelId = hotel.hotel_id,
-                                                userId = userId,
-                                                tripId = tripId,
-                                                checkIn = "2025-01-01", // TODO: ถ้ามีปฏิทินให้เปลี่ยนตรงนี้
-                                                checkOut = "2025-01-02", // TODO: ถ้ามีปฏิทินให้เปลี่ยนตรงนี้
-                                                totalPrice = hotel.price_per_night.toInt(),
-                                                onSuccess = {
-                                                    Toast.makeText(context, "เพิ่มโรงแรมลงทริปสำเร็จ!", Toast.LENGTH_SHORT).show()
-                                                    onBackClick() // 💡 สั่งให้เด้งกลับหน้าเดิมทันทีที่สำเร็จ
-                                                }
-                                            )
-                                        } else {
-                                            Toast.makeText(context, "Error: ไม่พบรหัสทริป (tripId เป็น null)", Toast.LENGTH_LONG).show()
-                                        }
-                                    } catch (e: Exception) {
-                                        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_SHORT).show()
+                                        viewModel.createBooking(
+                                            context = context,
+                                            hotelId = hotel.hotel_id,
+                                            userId = userId,
+                                            tripId = tripId,
+                                            checkIn = checkInInput,
+                                            checkOut = checkOutInput,
+                                            totalPrice = totalPrice,  // ✅ ราคารวมจากจำนวนคืนจริง
+                                            onSuccess = {
+                                                Toast.makeText(context, "เพิ่มโรงแรมลงทริปสำเร็จ!", Toast.LENGTH_SHORT).show()
+                                                onBackClick()
+                                            }
+                                        )
                                     }
                                 },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFFFAB40)),
                                 modifier = Modifier.width(90.dp)
-                            ) {
-                                Text("ยืนยัน", color = Color.White)
-                            }
+                            ) { Text("ยืนยัน", color = Color.White) }
 
                             Button(
                                 onClick = { showDialog = false },
                                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF9E9E9E)),
                                 modifier = Modifier.width(90.dp)
-                            ) {
-                                Text("ยกเลิก", color = Color.White)
-                            }
+                            ) { Text("ยกเลิก", color = Color.White) }
                         }
                     }
                 }

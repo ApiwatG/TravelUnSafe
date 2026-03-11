@@ -20,11 +20,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.platform.LocalContext
+import coil.compose.AsyncImage
+
 // ===== CATEGORY DATA CLASS =====
 data class PlaceCategory(
     val label: String,
@@ -388,7 +391,7 @@ fun HotelBookingBanner() {
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "พักที่ญี่ปุ่น?",
+                    text = "พักที่อยากที่ไหน?",
                     fontSize = 18.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
@@ -421,23 +424,34 @@ fun PlaceResultRow(place: Place, onClick: () -> Unit = {}, trailingContent: @Com
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Thumbnail
+        val placeImageUrl = when {
+            place.image_url.isNullOrBlank() -> null
+            place.image_url.startsWith("http") -> place.image_url
+            else -> "http://10.0.2.2:3000/images/${place.image_url}"
+        }
+
         Box(
             modifier = Modifier
                 .size(width = 80.dp, height = 64.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFF80CBC4), Color(0xFF26A69A))
-                    )
-                ),
-            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.Place,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
+            if (placeImageUrl != null) {
+                AsyncImage(
+                    model = placeImageUrl,
+                    contentDescription = place.place_name,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(listOf(Color(0xFF80CBC4), Color(0xFF26A69A)))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Place, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))
@@ -531,23 +545,34 @@ fun GuideResultRow(guide: GuideResult, onClick: () -> Unit = {}) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         // Thumbnail
+        val guideImageUrl = when {
+            guide.imageUrl.isNullOrBlank() -> null
+            guide.imageUrl.startsWith("http") -> guide.imageUrl
+            else -> "http://10.0.2.2:3000/images/${guide.imageUrl}"
+        }
+
         Box(
             modifier = Modifier
                 .size(width = 110.dp, height = 80.dp)
                 .clip(RoundedCornerShape(12.dp))
-                .background(
-                    Brush.linearGradient(
-                        listOf(Color(0xFFEF9A9A), Color(0xFFE57373))
-                    )
-                ),
-            contentAlignment = Alignment.Center
         ) {
-            Icon(
-                imageVector = Icons.Default.MenuBook,
-                contentDescription = null,
-                tint = Color.White,
-                modifier = Modifier.size(32.dp)
-            )
+            if (guideImageUrl != null) {
+                AsyncImage(
+                    model = guideImageUrl,
+                    contentDescription = guide.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+            } else {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(Brush.linearGradient(listOf(Color(0xFFEF9A9A), Color(0xFFE57373)))),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.MenuBook, null, tint = Color.White, modifier = Modifier.size(32.dp))
+                }
+            }
         }
 
         Spacer(modifier = Modifier.width(12.dp))

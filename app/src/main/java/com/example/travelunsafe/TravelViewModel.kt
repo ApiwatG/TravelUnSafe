@@ -83,8 +83,6 @@ class TravelViewModel : ViewModel() {
 
 
 
-
-
     fun loadTripInvitations(userId: String) {
         viewModelScope.launch {
             try {

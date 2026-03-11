@@ -113,7 +113,7 @@ fun PlaceDetailScreen(
                     // Background image or gradient
                     if (!place.image_url.isNullOrBlank()) {
                         val fullUrl = if (place.image_url.startsWith("http")) place.image_url
-                        else "http://10.0.2.2:3000/${place.image_url}"
+                        else "http://10.0.2.2:3000/images/${place.image_url}"
                         AsyncImage(
                             model = fullUrl,
                             contentDescription = place.place_name,
@@ -403,29 +403,9 @@ fun PlaceDetailScreen(
                     }
 
                     // Share button
-                    OutlinedButton(
-                        onClick = {
-                            Toast.makeText(context, "แชร์สถานที่", Toast.LENGTH_SHORT).show()
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(50.dp),
-                        shape = RoundedCornerShape(14.dp),
-                        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFFE0E0E0))
-                    ) {
-                        Icon(
-                            Icons.Default.Share,
-                            contentDescription = null,
-                            tint = Color(0xFF424242),
-                            modifier = Modifier.size(20.dp)
-                        )
+
                         Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            text = "แชร์",
-                            fontWeight = FontWeight.Bold,
-                            color = Color(0xFF424242),
-                            fontSize = 15.sp
-                        )
+
                     }
                 }
 
@@ -433,4 +413,4 @@ fun PlaceDetailScreen(
             }
         }
     }
-}
+

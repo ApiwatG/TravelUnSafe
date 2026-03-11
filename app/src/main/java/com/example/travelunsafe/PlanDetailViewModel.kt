@@ -22,7 +22,11 @@ class PlanDetailViewModel : ViewModel() {
         private set
 
     val totalExpense: Int
-        get() = expenseList.sumOf { it.amount }
+        get() {
+            val expenseSum = expenseList.sumOf { it.amount }
+            val hotelSum = tripBookings.sumOf { it.total_price.toInt() }
+            return expenseSum + hotelSum
+        }
 
     // 💡 รวบตึงเหลือฟังก์ชันเดียว และดึงข้อมูลโรงแรม (tripBookings) เข้ามาแล้ว
     fun loadTripDetail(tripId: String, userId: String) {
