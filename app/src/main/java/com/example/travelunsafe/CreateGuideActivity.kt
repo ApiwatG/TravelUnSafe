@@ -185,7 +185,7 @@ fun CreateGuideScreen(
                     val existingUrl = if (editGuide.image_guide!!.startsWith("http")) {
                         editGuide.image_guide
                     } else {
-                        "http://192.168.1.11:3000/${editGuide.image_guide}"
+                        "http://10.0.2.2:3000/${editGuide.image_guide}"
                     }
                     Box(
                         modifier = Modifier.fillMaxWidth().height(180.dp).clip(RoundedCornerShape(12.dp))
@@ -317,7 +317,7 @@ suspend fun updateGuide(
             // ตรวจสอบให้แน่ใจว่าไม่มีช่องว่างหรือตัวอักษรแปลกๆ ใน guideId
             val cleanId = guideId.trim()
             val request = Request.Builder()
-                .url("http://192.168.1.11:3000/guides/$cleanId") // ต้องเป็น /guides/GI008
+                .url("http://10.0.2.2:3000/guides/$cleanId") // ต้องเป็น /guides/GI008
                 .put(builder.build())
                 .build()
 
